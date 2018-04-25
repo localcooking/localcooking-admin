@@ -68,7 +68,7 @@ type Effects =
 
 main :: Eff Effects Unit
 main = do
-  log "Starting Local Cooking Chefs frontend..."
+  log "Starting Local Cooking Admin frontend..."
 
   initSiteLink <- initSiteLinks
 

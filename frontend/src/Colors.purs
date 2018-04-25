@@ -6,9 +6,9 @@ import MaterialUI.MuiThemeProvider (ColorPalette)
 palette :: {primary :: ColorPalette, secondary :: ColorPalette}
 palette =
   { primary:
-    { light: "#5e92f3"
-    , main: "#1565c0"
-    , dark: "#003c8f"
+    { light: "#819ca9"
+    , main: "#546e7a"
+    , dark: "#29434e"
     , contrastText: "#ffffff"
     }
   , secondary:

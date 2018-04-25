@@ -1,6 +1,6 @@
-name:                localcooking-chef
+name:                localcooking-admin
 version:             0.0.0
-git:                 "git://git.localcooking.com/localcooking/localcooking-chef.git"
+git:                 "git://git.localcooking.com/localcooking/localcooking-admin.git"
 license:             BSD3
 author:              "Athan Clark"
 maintainer:          "athan.clark@localcooking.com"
@@ -61,7 +61,7 @@ executables:
     - -Wall
     - -with-rtsopts=-N
     dependencies:
-    - localcooking-chef
+    - localcooking-admin
     - localcooking-template
 
 tests:
@@ -74,7 +74,7 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     dependencies:
-    - localcooking-chef
+    - localcooking-admin
     - localcooking-db
     - localcooking-template
     - aeson
