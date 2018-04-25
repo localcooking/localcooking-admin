@@ -37,7 +37,7 @@ server {
 	# include snippets/snakeoil.conf;
 
 	# root /var/www/html;
-	server_name localcooking.com www.localcooking.com;
+	server_name admin.localcooking.com
 
 	location /static/ {
 		alias /var/www/html/static/;
@@ -125,27 +125,6 @@ server {
 
 	listen 80 default_server;
 	listen [::]:80 default_server;
-
-
-}
-
-server {
-    if ($host = www.localcooking.com) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-
-
-    if ($host = localcooking.com) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-
-
-
-	server_name localcooking.com www.localcooking.com;
-    listen 80;
-    return 404; # managed by Certbot
-
-
 
 
 }

@@ -1,5 +1,5 @@
 [Unit]
-Description=Local Cooking Chefs
+Description=Local Cooking Admin
 After=network.target
 
 [Service]
@@ -7,8 +7,8 @@ User=localcooking
 Group=localcooking
 WorkingDirectory=/home/localcooking
 
-ExecStart=/home/localcooking/localcooking-chef/backend/.stack-work/install/x86_64-linux/lts-11.2/8.2.2/bin/localcooking-chef \
-  --host chef.localcooking.com:3000 --public-port 80 --tls \
+ExecStart=/home/localcooking/localcooking-admin/backend/.stack-work/install/x86_64-linux/lts-11.2/8.2.2/bin/localcooking-admin \
+  --host admin.localcooking.com:3000 --public-port 80 --tls \
   --db-host db.localcooking.com --db-user localcooking --db-name localcooking --db-password ???
 
 [Install]
