@@ -52,7 +52,7 @@ library:
     - wai-transformers >= 0.1.0
 
 executables:
-  localcooking-chef:
+  localcooking-admin:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
