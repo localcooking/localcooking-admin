@@ -73,10 +73,14 @@ spec {toURI} = T.simpleSpec performAction render
     render dispatch props state children =
       [ typography
         { variant: if state.windowSize < Laptop then Typography.headline else Typography.display1
-        , align: Typography.right
+        , align: Typography.left
         , color: Typography.primary
         , style: createStyles {marginBottom: "1em"}
         } [R.text "Admin"]
+      , divider {}
+      , typography
+        { variant: Typography.body1
+        } [R.text "Welcome to the Local Cooking administration console - if you don't know why you're here, skedaddle!"]
       ]
 
 
