@@ -37,11 +37,14 @@ library:
     - bytestring
     - emailaddress
     - file-embed
+    - hashable
     - http-types
     - mtl
     - nested-routes >= 9.0.0.1
+    - newtype
     - path
     - path-extra >= 0.2.0
+    - persistent
     - shakespeare
     - sparrow >= 0.0.1.4
     - strict

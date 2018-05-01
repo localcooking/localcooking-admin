@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2f67fa7c38b83c14e56ed386f6d7ff46395dcf39c488144600b05c74053e421b
+-- hash: ffb4eb802ab0fec369389f7b317e32c28aa9c17efbaecf6d1a800ff533886c89
 
 name:           localcooking-admin
 version:        0.0.0
@@ -29,6 +29,7 @@ library
       Server
       Server.Assets
       Server.Dependencies
+      Server.Dependencies.PermissionToken.Admin
       Server.HTTP
   other-modules:
       Paths_localcooking_admin
@@ -44,14 +45,17 @@ library
     , bytestring
     , emailaddress
     , file-embed
+    , hashable
     , http-types
     , localcooking-db
     , localcooking-shared
     , localcooking-template
     , mtl
     , nested-routes >=9.0.0.1
+    , newtype
     , path
     , path-extra >=0.2.0
+    , persistent
     , shakespeare
     , sparrow >=0.0.1.4
     , strict
@@ -61,7 +65,7 @@ library
     , wai-transformers >=0.1.0
   default-language: Haskell2010
 
-executable localcooking-chef
+executable localcooking-admin
   main-is: Main.hs
   other-modules:
       Paths_localcooking_admin
