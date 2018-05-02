@@ -15,6 +15,7 @@ import Links (SiteLinks)
 
 import LocalCooking.Server (LocalCookingArgs (..))
 import LocalCooking.Colors (LocalCookingColors (..))
+import LocalCooking.Server.Dependencies.AccessToken.Generic (AccessTokenContext)
 
 import Text.Lucius (Color (..))
 

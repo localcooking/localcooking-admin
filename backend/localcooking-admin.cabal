@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ffb4eb802ab0fec369389f7b317e32c28aa9c17efbaecf6d1a800ff533886c89
+-- hash: ecf640ae92c688273acb0d46b65975954b3ea4cec64a822d2e69bc10fdaff946
 
 name:           localcooking-admin
 version:        0.0.0
@@ -29,7 +29,6 @@ library
       Server
       Server.Assets
       Server.Dependencies
-      Server.Dependencies.PermissionToken.Admin
       Server.HTTP
   other-modules:
       Paths_localcooking_admin
@@ -76,6 +75,7 @@ executable localcooking-admin
       base >=4.8 && <5
     , localcooking-admin
     , localcooking-template
+    , stm
   default-language: Haskell2010
 
 test-suite localcooking-test

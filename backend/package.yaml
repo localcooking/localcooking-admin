@@ -66,6 +66,7 @@ executables:
     dependencies:
     - localcooking-admin
     - localcooking-template
+    - stm
 
 tests:
   localcooking-test:
