@@ -112,6 +112,7 @@ data SiteLinks
   = RootLink
   | RegisterLink
   | UserDetailsLink (Maybe UserDetailsLinks)
+  | UsersLink
 
 instance arbitrarySiteLinks :: Arbitrary SiteLinks where
   arbitrary = oneOf $
@@ -119,6 +120,7 @@ instance arbitrarySiteLinks :: Arbitrary SiteLinks where
     :|  [ pure RegisterLink
         , do mUserDetails <- arbitrary
              pure (UserDetailsLink mUserDetails)
+        , pure UsersLink
         ]
 
 initSiteLinks :: forall eff

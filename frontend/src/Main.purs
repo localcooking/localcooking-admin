@@ -109,13 +109,13 @@ main = do
       }
     , topbar:
       { imageSrc: toLocation Logo40Png
-      , buttons: \_ -> [] -- \{toURI,siteLinks,currentPageSignal,windowSizeSignal,authTokenSignal} ->
-        -- [ topbarButtons
-        --   { currentPageSignal
-        --   , siteLinks
-        --   , toURI
-        --   }
-        -- ]
+      , buttons: \{toURI,siteLinks,currentPageSignal,windowSizeSignal,authTokenSignal} ->
+        [ topbarButtons
+          { currentPageSignal
+          , siteLinks
+          , toURI
+          }
+        ]
       }
     , content: \{toURI,siteLinks,windowSizeSignal,currentPageSignal} ->
       [ content {toURI,siteLinks,windowSizeSignal,currentPageSignal} ]
