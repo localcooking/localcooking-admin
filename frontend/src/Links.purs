@@ -196,7 +196,9 @@ instance localCookingSiteLinksSiteLinks :: LocalCookingSiteLinks SiteLinks UserD
   getUserDetailsLink link = case link of
     UserDetailsLink mDetails -> Just mDetails
     _ -> Nothing
-  toDocumentTitle _ = ""
+  toDocumentTitle x = case x of
+    RootLink -> ""
+    RegisterLink -> "Register"
   subsidiaryTitle _ = " Admin"
 
 
