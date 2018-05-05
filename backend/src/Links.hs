@@ -14,7 +14,8 @@ import LocalCooking.Links.Class (LocalCookingSiteLinks (..))
 
 import Data.Monoid ((<>))
 import Data.Attoparsec.Text (Parser, parseOnly, char, string, endOfInput)
-import Path (File, Abs, absdir, absfile, toFilePath)
+import Data.Text (Text)
+import Path (File, Abs, Rel, relfile, absdir, absfile, toFilePath, (</>))
 import Path.Extended (Location (..), ToPath (..), ToLocation (..), FromLocation (..), fromAbsFile)
 import qualified Data.Text as T
 import Control.Applicative ((<|>))
@@ -25,10 +26,40 @@ import Test.QuickCheck (Arbitrary (..), oneof)
 
 
 
+data UserDetailsLinks
+  = UserDetailsGeneral
+  | UserDetailsSecurity
+  deriving (Eq, Show, Generic)
+
+instance Arbitrary UserDetailsLinks where
+  arbitrary = oneof
+    [ pure UserDetailsGeneral
+    , pure UserDetailsSecurity
+    ]
+
+instance ToPath UserDetailsLinks Rel File where
+  toPath x = case x of
+    UserDetailsGeneral   -> [relfile|general|]
+    UserDetailsSecurity  -> [relfile|security|]
+
+userDetailsLinksParser :: Parser UserDetailsLinks
+userDetailsLinksParser = do
+  let general = UserDetailsGeneral <$ string "general"
+      security = UserDetailsSecurity <$ string "security"
+  general <|> security
+
+userDetailsToDocumentTitle :: UserDetailsLinks -> Text
+userDetailsToDocumentTitle x = case x of
+  UserDetailsGeneral   -> "General - "
+  UserDetailsSecurity  -> "Security - "
+
+
 data SiteLinks
   = RootLink
   | AboutLink
   | RegisterLink
+  | UsersLink
+  | UserDetailsLink (Maybe UserDetailsLinks)
   deriving (Eq, Show, Generic)
 
 instance Arbitrary SiteLinks where
@@ -36,6 +67,8 @@ instance Arbitrary SiteLinks where
     [ pure RootLink
     , pure AboutLink
     , pure RegisterLink
+    , pure UsersLink
+    , UserDetailsLink <$> arbitrary
     ]
 
 -- TODO URI / Location parser
@@ -45,6 +78,10 @@ instance ToPath SiteLinks Abs File where
     RootLink -> unsafeCoerce [absdir|/|]
     AboutLink -> [absfile|/about|]
     RegisterLink -> [absfile|/register|]
+    UsersLink -> [absfile|/users|]
+    UserDetailsLink mDetails -> case mDetails of
+      Nothing -> [absfile|/userDetails|]
+      Just d -> [absdir|/userDetails/|] </> toPath d
 
 instance ToLocation SiteLinks where
   toLocation = fromAbsFile . toPath
@@ -64,7 +101,15 @@ instance FromLocation SiteLinks where
         let root  = RootLink <$ endOfInput
             about = AboutLink <$ string "about"
             register = RegisterLink <$ string "register"
-        register <|> about <|> root
+            users = UsersLink <$ string "users"
+            userDetails = do
+              void (string "userDetails")
+              let nil = Nothing <$ endOfInput
+                  detail = do
+                    divider
+                    Just <$> userDetailsLinksParser
+              UserDetailsLink <$> (detail <|> nil)
+        register <|> about <|> users <|> userDetails <|> root
       divider = void (char '/')
 
 instance LocalCookingSiteLinks SiteLinks where
@@ -75,6 +120,10 @@ instance LocalCookingSiteLinks SiteLinks where
         RootLink -> ""
         AboutLink -> "About - "
         RegisterLink -> "Register - "
+        UsersLink -> "Users - "
+        UserDetailsLink mDetails -> case mDetails of
+          Nothing -> "User Details - "
+          Just d -> userDetailsToDocumentTitle d <> "User Details - "
       ) <> "Local Cooking Admin"
 
 
