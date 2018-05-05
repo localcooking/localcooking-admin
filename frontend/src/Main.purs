@@ -41,7 +41,7 @@ import MaterialUI.ListItem (listItem)
 import MaterialUI.ListItemIcon (listItemIcon)
 import MaterialUI.ListItemText (listItemText)
 import MaterialUI.Types (createStyles)
-import MaterialUI.Icons.RestaurantMenu (restaurantMenuIcon)
+import MaterialUI.Icons.People (peopleIcon)
 import DOM (DOM)
 import DOM.HTML.Types (HISTORY)
 import WebSocket (WEBSOCKET)
@@ -84,28 +84,18 @@ main = do
     , palette
     , deps
     , leftDrawer:
-      { buttons: \_ -> []
-        -- [ divider {}
-        -- , listItem
-        --   { button: true
-        --   , onClick: mkEffFn1 \_ -> unsafeCoerceEff $ siteLinks MealsLink
-        --   }
-        --   [ listItemIcon {} restaurantMenuIcon
-        --   , listItemText
-        --     { primary: "Meals"
-        --     }
-        --   ]
-        -- , divider {}
-        -- , listItem
-        --   { button: true
-        --   , onClick: mkEffFn1 \_ -> unsafeCoerceEff $ siteLinks ChefsLink
-        --   }
-        --   [ listItemIcon {} $ svgIcon {viewBox: chefHatViewBox, color: SvgIcon.action}
-        --       [chefHat]
-        --   , listItemText
-        --     { primary: "Chefs"
-        --     }
-        --   ]
+      { buttons: \{siteLinks} ->
+        [ divider {}
+        , listItem
+          { button: true
+          , onClick: mkEffFn1 \_ -> unsafeCoerceEff (siteLinks UsersLink)
+          }
+          [ listItemIcon {} peopleIcon
+          , listItemText
+            { primary: "Meals"
+            }
+          ]
+        ]
       }
     , topbar:
       { imageSrc: toLocation Logo40Png

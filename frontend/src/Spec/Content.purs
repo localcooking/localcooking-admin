@@ -1,6 +1,7 @@
 module Spec.Content where
 
 import Spec.Content.Root (root)
+import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
 import Links (SiteLinks (..))
 import LocalCooking.Window (WindowSize)
@@ -82,6 +83,8 @@ spec
               { windowSizeSignal
               , toURI
               }
+          UsersLink ->
+            users
           _ -> R.text ""
       ]
 
