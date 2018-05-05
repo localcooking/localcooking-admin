@@ -1,6 +1,6 @@
 module Spec.Topbar.Buttons where
 
-import Links (SiteLinks)
+import Links (SiteLinks (UsersLink))
 import LocalCooking.Links.Class (toLocation)
 
 import Prelude
@@ -67,14 +67,14 @@ spec {siteLinks,toURI} = T.simpleSpec performAction render
     render dispatch props state children =
       [ button
         { color: Button.primary
-        , disabled: state.currentPage == MealsLink
+        , disabled: state.currentPage == UsersLink
         , onClick: mkEffFn1 preventDefault
         , onTouchTap: mkEffFn1 \e -> do
             preventDefault e
-            dispatch (Clicked MealsLink)
-        , href: URI.print $ toURI $ toLocation MealsLink
+            dispatch (Clicked UsersLink)
+        , href: URI.print $ toURI $ toLocation UsersLink
         , variant: Button.raised
-        } [R.text "Meals"]
+        } [R.text "Users"]
       ]
 
 

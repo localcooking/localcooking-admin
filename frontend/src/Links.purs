@@ -113,6 +113,7 @@ data SiteLinks
   | RegisterLink
   | UserDetailsLink (Maybe UserDetailsLinks)
   | UsersLink
+  | EmailConfirmLink
 
 instance arbitrarySiteLinks :: Arbitrary SiteLinks where
   arbitrary = oneOf $
@@ -121,6 +122,7 @@ instance arbitrarySiteLinks :: Arbitrary SiteLinks where
         , do mUserDetails <- arbitrary
              pure (UserDetailsLink mUserDetails)
         , pure UsersLink
+        , pure EmailConfirmLink
         ]
 
 initSiteLinks :: forall eff
@@ -156,9 +158,12 @@ initSiteLinks = do
               case
                     StrMap.lookup "authToken" (StrMap.fromFoldable qs)
                 <|> StrMap.lookup "formData" (StrMap.fromFoldable qs)
+                <|> StrMap.lookup "emailToken" (StrMap.fromFoldable qs)
                 of
                 Nothing -> pure unit
-                Just _ -> replaceState' x h
+                Just _ -> flip replaceState' h $ case x of
+                  EmailConfirmLink -> RootLink
+                  _ -> x
           pure x
 
 derive instance genericSiteLinks :: Generic SiteLinks
@@ -174,6 +179,8 @@ instance toLocationSiteLinks :: ToLocation SiteLinks where
   toLocation x = case x of
     RootLink  -> Location (Left rootDir) Nothing Nothing
     RegisterLink -> Location (Right $ rootDir </> file "register") Nothing Nothing
+    EmailConfirmLink -> Location (Right $ rootDir </> file "emailConfirm") Nothing Nothing
+    UsersLink -> Location (Right $ rootDir </> file "users") Nothing Nothing
     UserDetailsLink mUserDetails ->
       Location
         ( Right $ case mUserDetails of
@@ -204,7 +211,11 @@ instance fromLocationSiteLinks :: FromLocation SiteLinks where
       siteLinksPathParser = do
         divider
         let def = defaultSiteLinksPathParser userDetailsLinksParser
-        def
+            emailConfirm = do
+              void (string "emailConfirm")
+              pure EmailConfirmLink
+        try emailConfirm
+          <|> def
         where
           divider = void (char '/')
         -- TODO put nonstandard parsers here
