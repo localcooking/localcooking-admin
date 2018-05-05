@@ -214,10 +214,12 @@ instance fromLocationSiteLinks :: FromLocation SiteLinks where
       siteLinksPathParser = do
         divider
         let def = defaultSiteLinksPathParser userDetailsLinksParser
+            users = UsersLink <$ string "users"
             emailConfirm = do
               void (string "emailConfirm")
               pure EmailConfirmLink
         try emailConfirm
+          <|> try users
           <|> def
         where
           divider = void (char '/')
