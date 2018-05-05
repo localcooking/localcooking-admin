@@ -99,11 +99,12 @@ main = do
       }
     , topbar:
       { imageSrc: toLocation Logo40Png
-      , buttons: \{toURI,siteLinks,currentPageSignal,windowSizeSignal,authTokenSignal} ->
+      , buttons: \{toURI,siteLinks,currentPageSignal,windowSizeSignal,userDetailsSignal} ->
         [ topbarButtons
           { currentPageSignal
           , siteLinks
           , toURI
+          , userDetailsSignal
           }
         ]
       }
