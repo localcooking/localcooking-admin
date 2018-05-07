@@ -7,6 +7,7 @@ import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.Argonaut.JSONUnit (JSONUnit (..))
+import Data.Foldable (intercalate)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
 import Control.Monad.Eff.Console (log)
@@ -23,9 +24,7 @@ import MaterialUI.Typography as Typography
 import MaterialUI.Divider (divider)
 import MaterialUI.CircularProgress (circularProgress)
 import MaterialUI.CircularProgress as CircularProgress
-import MaterialUI.List (list)
-import MaterialUI.ListItem (listItem)
-import MaterialUI.ListItemText (listItemText)
+import MaterialUI.Table (table, tableBody, tableCell, tableHead, tableRow)
 
 import Queue.Types (allowReading, allowWriting)
 import Queue.One.Aff as OneIO
@@ -70,13 +69,21 @@ spec = T.simpleSpec performAction render
       , divider {}
       , case state.users of
           Nothing -> circularProgress {mode: CircularProgress.indeterminate}
-          Just xs -> list {dense: true} $
-            map (\(UserListing {email,roles}) ->
-                  listItem {}
-                  [ listItemText {primary: Email.toString email}
-                  -- , listItemText 
-                  ]
-                ) xs
+          Just xs -> table {}
+            [ tableHead {}
+              [ tableRow {}
+                [ tableCell {} $ R.text "Email"
+                , tableCell {} $ R.text "Roles"
+                ]
+              ]
+            , tableBody {} $
+                map (\(UserListing {email,roles}) ->
+                      tableRow {}
+                      [ tableCell {} $ R.text $ Email.toString email
+                      , tableCell {} $ R.text $ intercalate ", " $ show <$> roles
+                      ]
+                    ) xs
+            ]
       ]
 
 
