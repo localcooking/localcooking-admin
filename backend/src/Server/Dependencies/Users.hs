@@ -22,6 +22,7 @@ import Data.Aeson.JSONUnit (JSONUnit (..))
 import Text.EmailAddress (EmailAddress)
 import Control.Monad.Reader (ask)
 import Control.Monad.IO.Class (liftIO)
+import Control.Logging (warn')
 
 
 
@@ -52,7 +53,9 @@ usersServer = staticServer $ \(AuthInitIn authToken JSONUnit) -> do
   mRole <- do
     mUserId <- usersAuthToken authToken
     case mUserId of
-      Nothing -> pure Nothing
+      Nothing -> do
+        warn' "auth token not recognized"
+        pure Nothing
       Just userId -> do
         isAdmin <- liftIO (hasRole envDatabase userId Admin)
         if isAdmin

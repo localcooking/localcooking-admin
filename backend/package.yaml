@@ -39,6 +39,7 @@ library:
     - file-embed
     - hashable
     - http-types
+    - logging
     - mtl
     - nested-routes >= 9.0.0.1
     - newtype

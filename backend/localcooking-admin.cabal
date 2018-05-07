@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 870b1b017aa11fc283ba549c57f60c26d57f09df19d99c9d33125bf0e53634d6
+-- hash: a05b99bf2b238e0cf22d44f577d1ec188b731819402fb4a2f80883bda3a44f7e
 
 name:           localcooking-admin
 version:        0.0.0
@@ -50,6 +50,7 @@ library
     , localcooking-db
     , localcooking-shared
     , localcooking-template
+    , logging
     , mtl
     , nested-routes >=9.0.0.1
     , newtype
