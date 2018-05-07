@@ -11,7 +11,11 @@ import LocalCooking.Links.Class (toLocation)
 import LocalCooking.Branding.Main (mainBrand)
 import LocalCooking.Main (defaultMain)
 import LocalCooking.Spec.Icons.ChefHat (chefHatViewBox, chefHat)
+import Client.Dependencies.Users (UsersSparrowClientQueues)
 
+import Sparrow.Client (unpackClient)
+import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
+import Sparrow.Types (Topic (..))
 
 import Prelude
 import Data.Maybe (Maybe (..))
@@ -75,8 +79,12 @@ main = do
 
   initSiteLink <- initSiteLinks
 
+
+  ( usersQueues :: UsersSparrowClientQueues Effects
+    ) <- newSparrowStaticClientQueues
+
   let deps = do
-        pure unit
+        unpackClient (Topic ["users"]) (sparrowStaticClientQueues usersQueues)
 
   defaultMain
     { env
@@ -108,8 +116,16 @@ main = do
           }
         ]
       }
-    , content: \{toURI,siteLinks,windowSizeSignal,currentPageSignal} ->
-      [ content {toURI,siteLinks,windowSizeSignal,currentPageSignal} ]
+    , content: \{toURI,siteLinks,windowSizeSignal,currentPageSignal,authTokenSignal} ->
+      [ content
+        { toURI
+        , siteLinks
+        , windowSizeSignal
+        , currentPageSignal
+        , authTokenSignal
+        , usersQueues
+        }
+      ]
     , userDetails:
       { buttons: \_ -> []
       , content: \{currentPageSignal,siteLinks} ->

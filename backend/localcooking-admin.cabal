@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ecf640ae92c688273acb0d46b65975954b3ea4cec64a822d2e69bc10fdaff946
+-- hash: 870b1b017aa11fc283ba549c57f60c26d57f09df19d99c9d33125bf0e53634d6
 
 name:           localcooking-admin
 version:        0.0.0
@@ -29,6 +29,7 @@ library
       Server
       Server.Assets
       Server.Dependencies
+      Server.Dependencies.Users
       Server.HTTP
   other-modules:
       Paths_localcooking_admin

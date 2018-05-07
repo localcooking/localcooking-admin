@@ -3,8 +3,10 @@ module Spec.Content where
 import Spec.Content.Root (root)
 import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
+import Client.Dependencies.Users (UsersSparrowClientQueues)
 import Links (SiteLinks (..))
 import LocalCooking.Window (WindowSize)
+import LocalCooking.Common.AccessToken.Auth (AuthToken)
 
 import Prelude
 
@@ -16,6 +18,7 @@ import React.Signal.WhileMounted as Signal
 import Data.UUID (GENUUID)
 import Data.URI (URI)
 import Data.URI.Location (Location)
+import Data.Maybe (Maybe)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
@@ -57,16 +60,20 @@ type Effects eff =
 
 spec :: forall eff
       . { windowSizeSignal  :: IxSignal (Effects eff) WindowSize
-        , siteLinks         :: SiteLinks -> Eff (Effects eff) Unit
         , currentPageSignal :: IxSignal (Effects eff) SiteLinks
+        , authTokenSignal   :: IxSignal (Effects eff) (Maybe AuthToken)
+        , siteLinks         :: SiteLinks -> Eff (Effects eff) Unit
         , toURI             :: Location -> URI
+        , usersQueues       :: UsersSparrowClientQueues (Effects eff)
         }
      -> T.Spec (Effects eff) State Unit Action
 spec
   { windowSizeSignal
   , currentPageSignal
+  , authTokenSignal
   , siteLinks
   , toURI
+  , usersQueues
   } = T.simpleSpec performAction render
   where
     performAction action props state = case action of
@@ -85,6 +92,9 @@ spec
               }
           UsersLink ->
             users
+              { usersQueues
+              , authTokenSignal
+              }
           _ -> R.text ""
       ]
 
@@ -93,14 +103,18 @@ spec
 content :: forall eff
          . { currentPageSignal :: IxSignal (Effects eff) SiteLinks
            , windowSizeSignal  :: IxSignal (Effects eff) WindowSize
+           , authTokenSignal   :: IxSignal (Effects eff) (Maybe AuthToken)
            , siteLinks         :: SiteLinks -> Eff (Effects eff) Unit
            , toURI             :: Location -> URI
+           , usersQueues       :: UsersSparrowClientQueues (Effects eff)
            } -> R.ReactElement
 content
   { currentPageSignal
   , windowSizeSignal
+  , authTokenSignal
   , siteLinks
   , toURI
+  , usersQueues
   } =
   let init =
         { initSiteLinks: unsafePerformEff $ IxSignal.get currentPageSignal
@@ -111,8 +125,10 @@ content
           ( spec
             { windowSizeSignal
             , currentPageSignal
+            , authTokenSignal
             , siteLinks
             , toURI
+            , usersQueues
             }
           )
           (initialState init)
