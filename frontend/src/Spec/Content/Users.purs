@@ -91,7 +91,8 @@ users {authTokenSignal, usersQueues: OneIO.IOQueues {input: usersInput, output: 
             (allowReading usersOutput)
             (\this mxs -> case mxs of
                 Just (AuthInitOut {subj: xs}) -> unsafeCoerceEff $ dispatcher this $ GotUsers xs
-                _ -> unsafeCoerceEff $ log "bad users queue response"
+                Just AuthInitOutNoAuth -> unsafeCoerceEff $ log "no auth"
+                Nothing -> unsafeCoerceEff $ log "bad users queue response"
             )
         $ reactSpec
           { componentDidMount = \_ -> do
