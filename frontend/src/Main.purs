@@ -107,23 +107,16 @@ main = do
       }
     , topbar:
       { imageSrc: toLocation Logo40Png
-      , buttons: \{toURI,siteLinks,currentPageSignal,windowSizeSignal,userDetailsSignal} ->
+      , buttons: \params ->
         [ topbarButtons
-          { currentPageSignal
-          , siteLinks
-          , toURI
-          , userDetailsSignal
-          }
+          params
         ]
       }
-    , content: \{toURI,siteLinks,windowSizeSignal,currentPageSignal,authTokenSignal} ->
+    , content: \params ->
       [ content
-        { toURI
-        , siteLinks
-        , windowSizeSignal
-        , currentPageSignal
-        , authTokenSignal
-        , usersQueues
+        params
+        { usersQueues
+        , env
         }
       ]
     , userDetails:

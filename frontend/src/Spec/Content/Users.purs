@@ -3,6 +3,7 @@ module Spec.Content.Users where
 import Client.Dependencies.Users (UserListing (..), UsersSparrowClientQueues)
 import LocalCooking.Client.Dependencies.AccessToken.Generic (AuthInitOut (..), AuthInitIn (..))
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
+import LocalCooking.Common.User.Role (UserRole)
 
 import Prelude
 import Data.Maybe (Maybe (..))
@@ -11,7 +12,9 @@ import Data.Foldable (intercalate)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
 import Control.Monad.Eff.Console (log)
+import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Text.Email.Validate as Email
+import Text.Email.Validate (EmailAddress)
 
 import Thermite as T
 import React as R
@@ -50,6 +53,7 @@ initialState =
 
 data Action
   = GotUsers (Array UserListing)
+  | ClickedUser {email :: EmailAddress, roles :: Array UserRole}
 
 
 spec :: forall eff. T.Spec eff State Unit Action
@@ -57,6 +61,8 @@ spec = T.simpleSpec performAction render
   where
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
+      ClickedUser {email,roles} -> do
+        pure unit
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -77,8 +83,8 @@ spec = T.simpleSpec performAction render
                 ]
               ]
             , tableBody {} $
-                map (\(UserListing {email,roles}) ->
-                      tableRow {}
+                map (\(UserListing x@{email,roles}) ->
+                      tableRow {hover: true} -- , onClick: mkEffFn1 \_ -> dispatch (ClickedUser x)
                       [ tableCell {} $ R.text $ Email.toString email
                       , tableCell {} $ R.text $ intercalate ", " $ show <$> roles
                       ]

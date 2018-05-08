@@ -3,6 +3,7 @@ module Spec.Topbar.Buttons where
 import Links (SiteLinks (UsersLink))
 import LocalCooking.Links.Class (toLocation)
 import LocalCooking.Common.User.Role (UserRole (Admin))
+import LocalCooking.Types.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
 import User (UserDetails (..))
 
 import Prelude
@@ -12,6 +13,7 @@ import Data.URI.Location (Location)
 import Data.UUID (GENUUID)
 import Data.Array as Array
 import Data.Maybe (Maybe (..))
+import Data.Lens (Lens', Prism', lens, prism')
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Unsafe (unsafePerformEff, unsafeCoerceEff)
@@ -42,36 +44,32 @@ type Effects eff =
   | eff)
 
 
-type State =
-  { currentPage :: SiteLinks
-  , userDetails :: Maybe UserDetails
-  }
+type State = LocalCookingState SiteLinks UserDetails
 
-initialState :: { initSiteLinks :: SiteLinks
-                , initUserDetails :: Maybe UserDetails
-                } -> State
-initialState {initSiteLinks,initUserDetails} =
-  { currentPage: initSiteLinks
-  , userDetails: initUserDetails
-  }
+initialState :: LocalCookingState SiteLinks UserDetails -> State
+initialState = id
 
 data Action
-  = ChangedCurrentPage SiteLinks
-  | ChangedUserDetails (Maybe UserDetails)
-  | Clicked SiteLinks
+  = Clicked SiteLinks
+  | LocalCookingAction (LocalCookingAction SiteLinks UserDetails)
+
+getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
+getLCState = lens id (\_ x -> x)
+
+getLCAction :: Prism' Action (LocalCookingAction SiteLinks UserDetails)
+getLCAction = prism' LocalCookingAction $ case _ of
+  LocalCookingAction x -> Just x
+  _ -> Nothing
 
 
 spec :: forall eff
-      . { siteLinks :: SiteLinks -> Eff (Effects eff) Unit
-        , toURI :: Location -> URI
-        }
+      . LocalCookingParams SiteLinks UserDetails (Effects eff)
      -> T.Spec (Effects eff) State Unit Action
-spec {siteLinks,toURI} = T.simpleSpec performAction render
+spec {siteLinks,toURI} = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
   where
     performAction action props state = case action of
-      ChangedCurrentPage p -> void $ T.cotransform _ { currentPage = p }
-      ChangedUserDetails u -> void $ T.cotransform _ { userDetails = u }
       Clicked x -> liftEff (siteLinks x)
+      _ -> pure unit
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -95,34 +93,17 @@ spec {siteLinks,toURI} = T.simpleSpec performAction render
 
 
 topbarButtons :: forall eff
-               . { currentPageSignal :: IxSignal (Effects eff) SiteLinks
-                 , siteLinks :: SiteLinks -> Eff (Effects eff) Unit
-                 , toURI :: Location -> URI
-                 , userDetailsSignal :: IxSignal (Effects eff) (Maybe UserDetails)
-                 } -> R.ReactElement
-topbarButtons
-  { toURI
-  , siteLinks
-  , currentPageSignal
-  , userDetailsSignal
-  } =
-  let init =
-        { initSiteLinks: unsafePerformEff $ IxSignal.get currentPageSignal
-        , initUserDetails: unsafePerformEff $ IxSignal.get userDetailsSignal
-        }
-      {spec:reactSpec,dispatcher} = T.createReactSpec
-        ( spec
-          { toURI
-          , siteLinks
-          }
+               . LocalCookingParams SiteLinks UserDetails (Effects eff)
+              -> R.ReactElement
+topbarButtons params =
+  let {spec:reactSpec,dispatcher} = T.createReactSpec
+        ( spec params
         )
-        (initialState init)
+        (initialState (unsafePerformEff (initLocalCookingState params)))
       reactSpec' =
-          Signal.whileMountedIxUUID
-            currentPageSignal
-            (\this x -> unsafeCoerceEff $ dispatcher this (ChangedCurrentPage x))
-        $ Signal.whileMountedIxUUID
-            userDetailsSignal
-            (\this x -> unsafeCoerceEff $ dispatcher this (ChangedUserDetails x))
+          whileMountedLocalCooking
+            params
+            getLCAction
+            (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec
   in  R.createElement (R.createClass reactSpec') unit []

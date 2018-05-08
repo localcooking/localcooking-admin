@@ -3,10 +3,15 @@ module Spec.Content where
 import Spec.Content.Root (root)
 import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
+import Spec.Dialogs.User (userDialog)
 import Client.Dependencies.Users (UsersSparrowClientQueues)
 import Links (SiteLinks (..))
 import LocalCooking.Window (WindowSize)
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
+import LocalCooking.Types.Env (Env)
+import LocalCooking.Types.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
+import LocalCooking.Spec.Snackbar (SnackbarMessage (..))
+import User (UserDetails)
 
 import Prelude
 
@@ -15,10 +20,12 @@ import React as R
 import React.DOM as R
 import React.DOM.Props as RP
 import React.Signal.WhileMounted as Signal
+import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
 import Data.URI (URI)
 import Data.URI.Location (Location)
 import Data.Maybe (Maybe)
+import Data.Lens (Lens', Prism', lens, prism')
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
@@ -29,24 +36,18 @@ import Crypto.Scrypt (SCRYPT)
 
 import IxSignal.Internal (IxSignal)
 import IxSignal.Internal as IxSignal
+import Queue.Types (WRITE)
+import Queue.One as One
 import Partial.Unsafe (unsafePartial)
 
 
 
-type State =
-  { page :: SiteLinks
-  , windowSize :: WindowSize
-  }
+type State = LocalCookingState SiteLinks UserDetails
 
-initialState :: {initSiteLinks :: SiteLinks, initWindowSize :: WindowSize} -> State
-initialState {initSiteLinks,initWindowSize} =
-  { page: initSiteLinks
-  , windowSize: initWindowSize
-  }
+initialState :: LocalCookingState SiteLinks UserDetails -> State
+initialState = id
 
-data Action
-  = ChangedCurrentPage SiteLinks
-  | ChangedWindowSize WindowSize
+type Action = LocalCookingAction SiteLinks UserDetails
 
 
 type Effects eff =
@@ -57,86 +58,77 @@ type Effects eff =
   , scrypt    :: SCRYPT
   | eff)
 
+getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
+getLCState = lens id (\_ x -> x)
+
+getLCAction :: Prism' Action (LocalCookingAction SiteLinks UserDetails)
+getLCAction = prism' id Just
+
+
 
 spec :: forall eff
-      . { windowSizeSignal  :: IxSignal (Effects eff) WindowSize
-        , currentPageSignal :: IxSignal (Effects eff) SiteLinks
-        , authTokenSignal   :: IxSignal (Effects eff) (Maybe AuthToken)
-        , siteLinks         :: SiteLinks -> Eff (Effects eff) Unit
-        , toURI             :: Location -> URI
-        , usersQueues       :: UsersSparrowClientQueues (Effects eff)
+      . LocalCookingParams SiteLinks UserDetails (Effects eff)
+     -> { usersQueues       :: UsersSparrowClientQueues (Effects eff)
+        , env               :: Env
         }
      -> T.Spec (Effects eff) State Unit Action
 spec
-  { windowSizeSignal
-  , currentPageSignal
-  , authTokenSignal
-  , siteLinks
-  , toURI
-  , usersQueues
-  } = T.simpleSpec performAction render
+  params@{windowSizeSignal,currentPageSignal,authTokenSignal,siteLinks,toURI}
+  { usersQueues
+  , env
+  } = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
   where
-    performAction action props state = case action of
-      ChangedCurrentPage p ->
-        void $ T.cotransform _ { page = p }
-      ChangedWindowSize w ->
-        void $ T.cotransform _ { windowSize = w }
+    performAction action props state = pure unit
 
     render :: T.Render State Unit Action
-    render dispatch props state children =
-      [ case state.page of
-          RootLink ->
-            root
-              { windowSizeSignal
-              , toURI
-              }
-          UsersLink ->
-            users
-              { usersQueues
-              , authTokenSignal
-              }
-          _ -> R.text ""
-      ]
+    render dispatch props state children = case state.currentPage of
+      RootLink ->
+        [ root
+          { windowSizeSignal
+          , toURI
+          }
+        ]
+      UsersLink ->
+        [ users
+          { usersQueues
+          , authTokenSignal
+          }
+        -- , usersDialog
+        --   { usersDialogQueue
+        --   , usersCloseQueue
+        --   , windowSizeQueue
+        --   , currentPageSignal
+        --   , toURI
+        --   , env
+        --   }
+        ]
+      _ -> [R.text ""]
 
 
 
 content :: forall eff
-         . { currentPageSignal :: IxSignal (Effects eff) SiteLinks
-           , windowSizeSignal  :: IxSignal (Effects eff) WindowSize
-           , authTokenSignal   :: IxSignal (Effects eff) (Maybe AuthToken)
-           , siteLinks         :: SiteLinks -> Eff (Effects eff) Unit
-           , toURI             :: Location -> URI
-           , usersQueues       :: UsersSparrowClientQueues (Effects eff)
+         . LocalCookingParams SiteLinks UserDetails (Effects eff)
+        -> { usersQueues       :: UsersSparrowClientQueues (Effects eff)
+           , env               :: Env
            } -> R.ReactElement
 content
-  { currentPageSignal
-  , windowSizeSignal
-  , authTokenSignal
-  , siteLinks
-  , toURI
-  , usersQueues
+  params
+  { usersQueues
+  , env
   } =
-  let init =
-        { initSiteLinks: unsafePerformEff $ IxSignal.get currentPageSignal
-        , initWindowSize: unsafePerformEff $ IxSignal.get windowSizeSignal
-        }
-      {spec: reactSpec, dispatcher} =
+  let {spec: reactSpec, dispatcher} =
         T.createReactSpec
           ( spec
-            { windowSizeSignal
-            , currentPageSignal
-            , authTokenSignal
-            , siteLinks
-            , toURI
-            , usersQueues
+            params
+            { usersQueues
+            , env
             }
           )
-          (initialState init)
-      reactSpec' = Signal.whileMountedIxUUID
-                     currentPageSignal
-                     (\this x -> unsafeCoerceEff $ dispatcher this (ChangedCurrentPage x))
-                 $ Signal.whileMountedIxUUID
-                     windowSizeSignal
-                     (\this x -> unsafeCoerceEff $ dispatcher this (ChangedWindowSize x))
-                   reactSpec
+          (initialState (unsafePerformEff (initLocalCookingState params)))
+      reactSpec' =
+          whileMountedLocalCooking
+            params
+            getLCAction
+            (\this -> unsafeCoerceEff <<< dispatcher this)
+            reactSpec
   in  R.createElement (R.createClass reactSpec') unit []
