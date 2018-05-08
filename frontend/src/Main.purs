@@ -130,6 +130,9 @@ main = do
           Just email -> pure $ Just $ UserDetails {email,roles}
           _ -> pure Nothing
       }
+    , extraRedirect: \link mUserDetails -> case link of
+        UsersLink -> Just RootLink
+        _ -> Nothing
     , extendedNetwork:
       [ Button.withStyles
         (\_ ->
