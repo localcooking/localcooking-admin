@@ -12,6 +12,7 @@ import LocalCooking.Types.Env (Env)
 import LocalCooking.Types.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
 import LocalCooking.Spec.Snackbar (SnackbarMessage (..))
 import User (UserDetails)
+import Types.Env (env)
 
 import Prelude
 
@@ -36,9 +37,11 @@ import Crypto.Scrypt (SCRYPT)
 
 import IxSignal.Internal (IxSignal)
 import IxSignal.Internal as IxSignal
-import Queue.Types (WRITE)
+import Queue.Types (WRITE, writeOnly)
 import Queue.One as One
+import Queue.One.Aff as OneIO
 import Partial.Unsafe (unsafePartial)
+import DOM (DOM)
 
 
 
@@ -56,6 +59,7 @@ type Effects eff =
   , uuid      :: GENUUID
   , console   :: CONSOLE
   , scrypt    :: SCRYPT
+  , dom       :: DOM
   | eff)
 
 getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
@@ -91,18 +95,21 @@ spec
       UsersLink ->
         [ users
           { usersQueues
+          , userDialogQueue
+          , userCloseQueue
           , authTokenSignal
           }
-        -- , usersDialog
-        --   { usersDialogQueue
-        --   , usersCloseQueue
-        --   , windowSizeQueue
-        --   , currentPageSignal
-        --   , toURI
-        --   , env
-        --   }
+        , userDialog
+          params
+          { userDialogQueue
+          , userCloseQueue
+          , env
+          }
         ]
       _ -> [R.text ""]
+
+    userDialogQueue = unsafePerformEff OneIO.newIOQueues
+    userCloseQueue = unsafePerformEff $ writeOnly <$> One.newQueue
 
 
 

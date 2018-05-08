@@ -69,21 +69,21 @@ type Effects eff =
 
 userDialog :: forall eff userDetailsLinks
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
-           -> { usersDialogQueue     :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
-              , usersCloseQueue      :: One.Queue (write :: WRITE) (Effects eff) Unit
-              , env                  :: Env
+           -> { userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
+              , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
+              , env             :: Env
               }
            -> R.ReactElement
 userDialog
   params
-  { usersDialogQueue
-  , usersCloseQueue
+  { userDialogQueue
+  , userCloseQueue
   , env
   } =
   genericDialog
   params
-  { dialogQueue: usersDialogQueue
-  , closeQueue: Just usersCloseQueue
+  { dialogQueue: userDialogQueue
+  , closeQueue: Just userCloseQueue
   , buttons: \{close} ->
     [ button
       { color: Button.secondary

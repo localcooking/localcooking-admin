@@ -4,6 +4,7 @@ import Client.Dependencies.Users (UserListing (..), UsersSparrowClientQueues)
 import LocalCooking.Client.Dependencies.AccessToken.Generic (AuthInitOut (..), AuthInitIn (..))
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import LocalCooking.Common.User.Role (UserRole)
+import LocalCooking.Common.Password (HashedPassword)
 
 import Prelude
 import Data.Maybe (Maybe (..))
@@ -29,7 +30,7 @@ import MaterialUI.CircularProgress (circularProgress)
 import MaterialUI.CircularProgress as CircularProgress
 import MaterialUI.Table (table, tableBody, tableCell, tableHead, tableRow)
 
-import Queue.Types (allowReading, allowWriting)
+import Queue.Types (WRITE, allowReading, allowWriting)
 import Queue.One.Aff as OneIO
 import Queue.One as One
 import IxSignal.Internal (IxSignal)
@@ -56,8 +57,12 @@ data Action
   | ClickedUser {email :: EmailAddress, roles :: Array UserRole}
 
 
-spec :: forall eff. T.Spec eff State Unit Action
-spec = T.simpleSpec performAction render
+spec :: forall eff
+      . { userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
+        , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
+        }
+     -> T.Spec (Effects eff) State Unit Action
+spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
   where
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
@@ -95,10 +100,17 @@ spec = T.simpleSpec performAction render
 
 users :: forall eff
        . { usersQueues :: UsersSparrowClientQueues (Effects eff)
+         , userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
+         , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
          , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
          } -> R.ReactElement
-users {authTokenSignal, usersQueues: OneIO.IOQueues {input: usersInput, output: usersOutput}} =
-  let {spec: reactSpec, dispatcher} = T.createReactSpec spec initialState
+users
+  { authTokenSignal
+  , usersQueues: OneIO.IOQueues {input: usersInput, output: usersOutput}
+  , userDialogQueue
+  , userCloseQueue
+  } =
+  let {spec: reactSpec, dispatcher} = T.createReactSpec (spec {userDialogQueue, userCloseQueue}) initialState
       reactSpec' =
           Queue.whileMountedOne
             (allowReading usersOutput)
