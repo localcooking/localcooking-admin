@@ -10,6 +10,7 @@ import Prelude
 import Data.Maybe (Maybe (..))
 import Data.Argonaut.JSONUnit (JSONUnit (..))
 import Data.Foldable (intercalate)
+import Control.Monad.Base (liftBase)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
 import Control.Monad.Eff.Console (log)
@@ -67,6 +68,7 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
       ClickedUser {email,roles} -> do
+        mUser <- liftBase (OneIO.callAsync userDialogQueue unit)
         pure unit
 
     render :: T.Render State Unit Action
@@ -89,7 +91,7 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
               ]
             , tableBody {} $
                 map (\(UserListing x@{email,roles}) ->
-                      tableRow {hover: true} -- , onClick: mkEffFn1 \_ -> dispatch (ClickedUser x)
+                      tableRow {hover: true, onClick: mkEffFn1 \_ -> dispatch (ClickedUser x)}
                       [ tableCell {} $ R.text $ Email.toString email
                       , tableCell {} $ R.text $ intercalate ", " $ show <$> roles
                       ]
