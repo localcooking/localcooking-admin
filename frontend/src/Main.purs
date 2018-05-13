@@ -11,7 +11,7 @@ import LocalCooking.Links.Class (toLocation)
 import LocalCooking.Branding.Main (mainBrand)
 import LocalCooking.Main (defaultMain)
 import LocalCooking.Spec.Icons.ChefHat (chefHatViewBox, chefHat)
-import Client.Dependencies.Users (UsersSparrowClientQueues)
+import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
 
 import Sparrow.Client (unpackClient)
 import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
@@ -80,11 +80,11 @@ main = do
   initSiteLink <- initSiteLinks
 
 
-  ( usersQueues :: UsersSparrowClientQueues Effects
+  ( getUsersQueues :: GetUsersSparrowClientQueues Effects
     ) <- newSparrowStaticClientQueues
 
   let deps = do
-        unpackClient (Topic ["users"]) (sparrowStaticClientQueues usersQueues)
+        unpackClient (Topic ["users","get"]) (sparrowStaticClientQueues getUsersQueues)
 
   defaultMain
     { env
@@ -115,7 +115,7 @@ main = do
     , content: \params ->
       [ content
         params
-        { usersQueues
+        { getUsersQueues
         , env
         }
       ]

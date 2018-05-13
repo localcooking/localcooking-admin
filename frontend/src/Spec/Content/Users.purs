@@ -1,6 +1,6 @@
 module Spec.Content.Users where
 
-import Client.Dependencies.Users (UserListing (..), UsersSparrowClientQueues)
+import Client.Dependencies.Users.Get (UserListing (..), GetUsersSparrowClientQueues)
 import LocalCooking.Client.Dependencies.AccessToken.Generic (AuthInitOut (..), AuthInitIn (..))
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import LocalCooking.Common.User.Role (UserRole)
@@ -59,7 +59,7 @@ data Action
 
 spec :: forall eff
       . { userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
-        , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
+        , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
         }
      -> T.Spec (Effects eff) State Unit Action
 spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
@@ -99,21 +99,21 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
 
 
 users :: forall eff
-       . { usersQueues :: UsersSparrowClientQueues (Effects eff)
+       . { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
          , userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
          , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
          , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
          } -> R.ReactElement
 users
   { authTokenSignal
-  , usersQueues: OneIO.IOQueues {input: usersInput, output: usersOutput}
+  , getUsersQueues: OneIO.IOQueues {input: getUsersInput, output: getUsersOutput}
   , userDialogQueue
   , userCloseQueue
   } =
   let {spec: reactSpec, dispatcher} = T.createReactSpec (spec {userDialogQueue, userCloseQueue}) initialState
       reactSpec' =
           Queue.whileMountedOne
-            (allowReading usersOutput)
+            (allowReading getUsersOutput)
             (\this mxs -> case mxs of
                 Just (AuthInitOut {subj: xs}) -> unsafeCoerceEff $ dispatcher this $ GotUsers xs
                 Just AuthInitOutNoAuth -> unsafeCoerceEff $ log "no auth"
@@ -125,6 +125,6 @@ users
             case mAuthToken of
               Nothing -> unsafeCoerceEff $ log "no auth token"
               Just token ->
-                unsafeCoerceEff (One.putQueue (allowWriting usersInput) (AuthInitIn {token, subj: JSONUnit}))
+                unsafeCoerceEff (One.putQueue (allowWriting getUsersInput) (AuthInitIn {token, subj: JSONUnit}))
           }
   in  R.createElement (R.createClass reactSpec') unit []

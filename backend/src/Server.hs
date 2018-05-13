@@ -20,7 +20,7 @@ import LocalCooking.Server.Dependencies.AccessToken.Generic (AccessTokenContext)
 import Text.Lucius (Color (..))
 
 
-server :: LocalCookingArgs SiteLinks sec
+server :: LocalCookingArgs SiteLinks sec []
 server = LocalCookingArgs
   { localCookingArgsFrontend = frontend
   , localCookingArgsFrontendMin = frontendMin

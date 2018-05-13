@@ -4,7 +4,7 @@ import Spec.Content.Root (root)
 import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
 import Spec.Dialogs.User (userDialog)
-import Client.Dependencies.Users (UsersSparrowClientQueues)
+import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
 import Links (SiteLinks (..))
 import LocalCooking.Window (WindowSize)
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
@@ -25,7 +25,6 @@ import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
 import Data.URI (URI)
 import Data.URI.Location (Location)
-import Data.Maybe (Maybe)
 import Data.Lens (Lens', Prism', lens, prism')
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE)
@@ -72,13 +71,13 @@ getLCAction = prism' id Just
 
 spec :: forall eff
       . LocalCookingParams SiteLinks UserDetails (Effects eff)
-     -> { usersQueues       :: UsersSparrowClientQueues (Effects eff)
-        , env               :: Env
+     -> { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
+        , env            :: Env
         }
      -> T.Spec (Effects eff) State Unit Action
 spec
   params@{windowSizeSignal,currentPageSignal,authTokenSignal,siteLinks,toURI}
-  { usersQueues
+  { getUsersQueues
   , env
   } = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
   where
@@ -94,7 +93,7 @@ spec
         ]
       UsersLink ->
         [ users
-          { usersQueues
+          { getUsersQueues
           , userDialogQueue
           , userCloseQueue
           , authTokenSignal
@@ -115,19 +114,19 @@ spec
 
 content :: forall eff
          . LocalCookingParams SiteLinks UserDetails (Effects eff)
-        -> { usersQueues       :: UsersSparrowClientQueues (Effects eff)
-           , env               :: Env
+        -> { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
+           , env            :: Env
            } -> R.ReactElement
 content
   params
-  { usersQueues
+  { getUsersQueues
   , env
   } =
   let {spec: reactSpec, dispatcher} =
         T.createReactSpec
           ( spec
             params
-            { usersQueues
+            { getUsersQueues
             , env
             }
           )

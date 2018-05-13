@@ -4,7 +4,7 @@
 
 module Server.Dependencies where
 
-import Server.Dependencies.Users (usersServer)
+import Server.Dependencies.Users.Get (getUsersServer)
 import LocalCooking.Types (AppM)
 
 import Web.Routes.Nested (l_, o_, (</>))
@@ -13,8 +13,9 @@ import Web.Dependencies.Sparrow.Types (Topic (..))
 import Network.Wai.Trans (MiddlewareT)
 
 
-dependencies :: SparrowServerT (MiddlewareT AppM) AppM ()
+dependencies :: SparrowServerT (MiddlewareT AppM) [] AppM ()
 dependencies =
-  match (l_ "users" </> o_)
-    =<< unpackServer (Topic ["users"]) usersServer
+  matchGroup (l_ "users" </> o_) $ do
+    match (l_ "get" </> o_)
+      =<< unpackServer (Topic ["users","get"]) getUsersServer
 

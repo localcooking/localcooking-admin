@@ -4,7 +4,7 @@
   , RecordWildCards
   #-}
 
-module Server.Dependencies.Users where
+module Server.Dependencies.Users.Get where
 
 import LocalCooking.Types (AppM)
 import LocalCooking.Types.Env (Env (..))
@@ -13,6 +13,7 @@ import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import LocalCooking.Common.User.Role (UserRole (Admin))
 import LocalCooking.Database.Query.User (getUsers, hasRole)
 import LocalCooking.Server.Dependencies.AccessToken.Generic (AuthInitIn (..), AuthInitOut (..))
+import LocalCooking.Server.Dependencies.Pagination (PaginationInitIn, PaginationInitOut, PaginationDeltaIn, PaginationDeltaOut)
 
 import Web.Dependencies.Sparrow.Types (Server, JSONVoid, staticServer)
 
@@ -38,16 +39,16 @@ instance ToJSON UserListing where
     ]
 
 
-type UsersInitIn = AuthInitIn AuthToken JSONUnit
+type GetUsersInitIn = AuthInitIn AuthToken JSONUnit
 
-type UsersInitOut = AuthInitOut [UserListing]
+type GetUsersInitOut = AuthInitOut [UserListing]
 
 
-usersServer :: Server AppM UsersInitIn
-                          UsersInitOut
-                          JSONVoid
-                          JSONVoid
-usersServer = staticServer $ \(AuthInitIn authToken JSONUnit) -> do
+getUsersServer :: Server AppM []  GetUsersInitIn
+                                  GetUsersInitOut
+                                  JSONVoid
+                                  JSONVoid
+getUsersServer = staticServer $ \(AuthInitIn authToken JSONUnit) -> do
   Env{envDatabase} <- ask
 
   mRole <- do

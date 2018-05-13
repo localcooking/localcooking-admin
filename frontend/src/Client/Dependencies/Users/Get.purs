@@ -1,4 +1,4 @@
-module Client.Dependencies.Users where
+module Client.Dependencies.Users.Get where
 
 import Prelude
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
@@ -25,9 +25,9 @@ instance decodeJsonUserListing :: DecodeJson UserListing where
     pure (UserListing {email,roles})
 
 
-type UsersInitIn = AuthInitIn AuthToken JSONUnit
+type GetUsersInitIn = AuthInitIn AuthToken JSONUnit
 
-type UsersInitOut = AuthInitOut (Array UserListing)
+type GetUsersInitOut = AuthInitOut (Array UserListing)
 
-type UsersSparrowClientQueues eff =
-  SparrowStaticClientQueues eff UsersInitIn UsersInitOut
+type GetUsersSparrowClientQueues eff =
+  SparrowStaticClientQueues eff GetUsersInitIn GetUsersInitOut
