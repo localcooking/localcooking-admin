@@ -9,7 +9,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Uncurried (mkEffFn1)
+import Control.Monad.Eff.Uncurried (mkEffFn1, mkEffFn2)
 import Control.Monad.Eff.Unsafe (unsafePerformEff, unsafeCoerceEff)
 
 import Thermite as T
@@ -35,7 +35,7 @@ import IxQueue as IxQueue
 type State = Set UserRole
 
 data Action
-  = ClickedRole UserRole
+  = ClickedRole UserRole Boolean
 
 type Effects eff =
   ( ref :: REF
@@ -48,10 +48,10 @@ spec :: forall eff
 spec {rolesSignal} = T.simpleSpec performAction render
   where
     performAction action props state = case action of
-      ClickedRole x -> do
+      ClickedRole x on -> do
         let state' state
-              | Set.member x state = Set.delete x state
-              | otherwise = Set.insert x state
+              | on = Set.insert x state
+              | otherwise = Set.delete x state
         liftEff $ IxSignal.set (Set.toUnfoldable (state' state)) rolesSignal
         void $ T.cotransform state'
 
@@ -66,11 +66,17 @@ spec {rolesSignal} = T.simpleSpec performAction render
                 { control:
                   checkbox
                   { checked: Set.member x state
+                  , onChange: mkEffFn2 \_ on -> dispatch (ClickedRole x on)
                   , value: (show x)
                   } []
                 , label: R.text (show x)
                 }
-          in  [ role Admin
+          in  [ role Customer
+              , role Chef
+              , role Farmer
+              , role Editor
+              , role Manager
+              , role Admin
               ]
         ]
       ]
