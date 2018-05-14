@@ -1,5 +1,6 @@
 module Spec.Dialogs.User where
 
+import Spec.Dialogs.User.Roles as Roles
 import Links (SiteLinks)
 import User (UserDetails)
 import LocalCooking.Spec.Dialogs.Generic (genericDialog)
@@ -114,6 +115,7 @@ userDialog
             IxQueue.onIxQueue passwordQueue k \_ -> submitValue
             IxSignal.subscribe (\_ -> submitValue) emailSignal
             IxSignal.subscribe (\_ -> submitValue) passwordSignal
+            IxSignal.set roles rolesSignal
             void $ setTimeout 200 $
               One.putQueue setPartialQueue (Email.toString email)
       in  [ Email.email
@@ -136,21 +138,9 @@ userDialog
             , updatedQueue: passwordQueue
             , errorQueue: passwordErrorQueue
             }
-          , formControl {component: R.createClassStateless' \_ children -> [R.fieldset [] children]}
-            [ formLabel {component: R.createClassStateless' \_ children -> [R.legend [] children]} [R.text "User Roles"]
-            , formGroup {}
-              let role x =
-                    formControlLabel
-                    { control:
-                      checkbox
-                      { checked: Array.elem x roles
-                      , value: (show x)
-                      } []
-                    , label: R.text (show x)
-                    }
-              in  [ role Admin
-                  ]
-            ]
+          , Roles.roles
+            { rolesSignal
+            }
           ]
     , obtain: do
       mEmail <- liftEff (IxSignal.get emailSignal)
@@ -187,3 +177,4 @@ userDialog
     passwordQueue = unsafePerformEff $ readOnly <$> IxQueue.newIxQueue
     passwordErrorQueue = unsafePerformEff $ writeOnly <$> One.newQueue
     setPartialQueue = unsafePerformEff $ writeOnly <$> One.newQueue
+    rolesSignal = unsafePerformEff $ IxSignal.make []
