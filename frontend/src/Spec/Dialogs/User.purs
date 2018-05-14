@@ -9,12 +9,9 @@ import LocalCooking.Types.Env (Env)
 import LocalCooking.Types.Params (LocalCookingParams)
 import LocalCooking.Window (WindowSize)
 import LocalCooking.Client.Dependencies.PasswordVerify (PasswordVerifySparrowClientQueues, PasswordVerifyInitIn (PasswordVerifyInitInUnauth), PasswordVerifyInitOut (PasswordVerifyInitOutSuccess))
--- import LocalCooking.Client.Dependencies.AuthToken (LoginFailure (BadPassword), AuthTokenFailure (AuthExistsFailure, AuthTokenLoginFailure))
--- import LocalCooking.Links (ThirdPartyLoginReturnLinks (..))
 import LocalCooking.Links.Class (registerLink, toLocation, class LocalCookingSiteLinks, class ToLocation)
 import LocalCooking.Common.Password (HashedPassword, hashPassword)
--- import Facebook.Call (FacebookLoginLink (..), facebookLoginLinkToURI)
--- import Facebook.State (FacebookLoginState (..))
+import LocalCooking.Common.User.Role (UserRole (..))
 
 import Prelude
 import Data.Maybe (Maybe (..))
@@ -23,6 +20,7 @@ import Data.URI (URI)
 import Data.URI.URI (print) as URI
 import Data.URI.Location (Location)
 import Data.UUID (genUUID, GENUUID)
+import Data.Array as Array
 import Text.Email.Validate (EmailAddress)
 import Text.Email.Validate as Email
 import Control.Monad.Base (liftBase)
@@ -45,6 +43,8 @@ import DOM (DOM)
 import MaterialUI.Types (createStyles)
 import MaterialUI.Button (button)
 import MaterialUI.Button as Button
+import MaterialUI.Checkbox (checkbox)
+import MaterialUI.Form (formControl, formGroup, formLabel, formControlLabel)
 import Crypto.Scrypt (SCRYPT)
 
 import Queue.Types (readOnly, writeOnly)
@@ -70,10 +70,11 @@ type Effects eff =
   | eff)
 
 
-userDialog :: forall eff userDetailsLinks
+userDialog :: forall eff
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
            -> { userDialogQueue :: OneIO.IOQueues (Effects eff)
-                                   { email :: EmailAddress } (Maybe {email :: EmailAddress, password :: HashedPassword})
+                                   {email :: EmailAddress, roles :: Array UserRole}
+                                   (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
               , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
               , env             :: Env
               }
@@ -98,7 +99,7 @@ userDialog
   , submitValue: "Save"
   , pends: true
   , content:
-    { component: \{submitDisabled,input: {email}} ->
+    { component: \{submitDisabled,input: {email,roles}} ->
       let _ = unsafePerformEff $ do
             k <- show <$> genUUID
             let submitValue = do
@@ -135,6 +136,21 @@ userDialog
             , updatedQueue: passwordQueue
             , errorQueue: passwordErrorQueue
             }
+          , formControl {component: R.createClassStateless' \_ children -> [R.fieldset [] children]}
+            [ formLabel {component: R.createClassStateless' \_ children -> [R.legend [] children]} [R.text "User Roles"]
+            , formGroup {}
+              let role x =
+                    formControlLabel
+                    { control:
+                      checkbox
+                      { checked: Array.elem x roles
+                      , value: (show x)
+                      } []
+                    , label: R.text (show x)
+                    }
+              in  [ role Admin
+                  ]
+            ]
           ]
     , obtain: do
       mEmail <- liftEff (IxSignal.get emailSignal)

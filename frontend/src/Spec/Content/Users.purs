@@ -59,7 +59,9 @@ data Action
 
 
 spec :: forall eff
-      . { userDialogQueue :: OneIO.IOQueues (Effects eff) {email :: EmailAddress} (Maybe {email :: EmailAddress, password :: HashedPassword})
+      . { userDialogQueue :: OneIO.IOQueues (Effects eff)
+                             {email :: EmailAddress, roles :: Array UserRole}
+                             (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
         , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
         }
      -> T.Spec (Effects eff) State Unit Action
@@ -68,7 +70,7 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
       ClickedUser {email,roles} -> do
-        mUser <- liftBase (OneIO.callAsync userDialogQueue {email})
+        mUser <- liftBase (OneIO.callAsync userDialogQueue {email,roles})
         pure unit
 
     render :: T.Render State Unit Action
@@ -102,7 +104,9 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
 
 users :: forall eff
        . { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
-         , userDialogQueue :: OneIO.IOQueues (Effects eff) {email :: EmailAddress} (Maybe {email :: EmailAddress, password :: HashedPassword})
+         , userDialogQueue :: OneIO.IOQueues (Effects eff)
+                              {email :: EmailAddress, roles :: Array UserRole}
+                              (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
          , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
          , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
          } -> R.ReactElement
