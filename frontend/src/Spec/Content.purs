@@ -30,6 +30,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
 import Control.Monad.Eff.Ref (REF)
+import Control.Monad.Eff.Timer (TIMER)
 import Control.Monad.Eff.Exception (EXCEPTION)
 
 import Crypto.Scrypt (SCRYPT)
@@ -59,6 +60,7 @@ type Effects eff =
   , console   :: CONSOLE
   , scrypt    :: SCRYPT
   , dom       :: DOM
+  , timer     :: TIMER
   | eff)
 
 getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)

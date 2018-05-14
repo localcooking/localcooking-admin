@@ -24,11 +24,13 @@ import Data.URI.URI (print) as URI
 import Data.URI.Location (Location)
 import Data.UUID (genUUID, GENUUID)
 import Text.Email.Validate (EmailAddress)
+import Text.Email.Validate as Email
 import Control.Monad.Base (liftBase)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
 import Control.Monad.Eff.Ref (REF)
+import Control.Monad.Eff.Timer (TIMER, setTimeout)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE, log)
@@ -64,12 +66,14 @@ type Effects eff =
   , scrypt    :: SCRYPT
   , console   :: CONSOLE
   , dom       :: DOM
+  , timer     :: TIMER
   | eff)
 
 
 userDialog :: forall eff userDetailsLinks
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
-           -> { userDialogQueue :: OneIO.IOQueues (Effects eff) Unit (Maybe {email :: EmailAddress, password :: HashedPassword})
+           -> { userDialogQueue :: OneIO.IOQueues (Effects eff)
+                                   { email :: EmailAddress } (Maybe {email :: EmailAddress, password :: HashedPassword})
               , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
               , env             :: Env
               }
@@ -94,7 +98,7 @@ userDialog
   , submitValue: "Save"
   , pends: true
   , content:
-    { component: \{submitDisabled} ->
+    { component: \{submitDisabled,input: {email}} ->
       let _ = unsafePerformEff $ do
             k <- show <$> genUUID
             let submitValue = do
@@ -109,6 +113,8 @@ userDialog
             IxQueue.onIxQueue passwordQueue k \_ -> submitValue
             IxSignal.subscribe (\_ -> submitValue) emailSignal
             IxSignal.subscribe (\_ -> submitValue) passwordSignal
+            void $ setTimeout 200 $
+              One.putQueue setPartialQueue (Email.toString email)
       in  [ Email.email
             { label: R.text "Email"
             , fullWidth: true
@@ -117,6 +123,7 @@ userDialog
             , emailSignal: emailSignal
             , parentSignal: Nothing
             , updatedQueue: emailQueue
+            , setPartialQueue
             }
           , Password.password
             { label: R.text "Password"
@@ -154,7 +161,6 @@ userDialog
           liftEff $ log "bad email!" -- FIXME bug out somehow?
           pure Nothing
     , reset: do
-      IxSignal.set (Email.EmailPartial "") emailSignal
       IxSignal.set "" passwordSignal
     }
   }
@@ -164,3 +170,4 @@ userDialog
     emailQueue = unsafePerformEff $ readOnly <$> IxQueue.newIxQueue
     passwordQueue = unsafePerformEff $ readOnly <$> IxQueue.newIxQueue
     passwordErrorQueue = unsafePerformEff $ writeOnly <$> One.newQueue
+    setPartialQueue = unsafePerformEff $ writeOnly <$> One.newQueue
