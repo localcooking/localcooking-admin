@@ -11,6 +11,7 @@ import LocalCooking.Links.Class (toLocation)
 import LocalCooking.Branding.Main (mainBrand)
 import LocalCooking.Main (defaultMain)
 import LocalCooking.Spec.Icons.ChefHat (chefHatViewBox, chefHat)
+import LocalCooking.Common.User.Role (UserRole (Admin))
 import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
 import Client.Dependencies.Users.Set (SetUserSparrowClientQueues)
 
@@ -21,6 +22,7 @@ import Sparrow.Types (Topic (..))
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
+import Data.Array as Array
 import Control.Monad.Aff (sequential)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Now (NOW)
@@ -136,7 +138,11 @@ main = do
           _ -> pure Nothing
       }
     , extraRedirect: \link mUserDetails -> case link of
-        UsersLink -> Just RootLink
+        UsersLink -> case mUserDetails of
+          Just (UserDetails {roles})
+            | Admin `Array.elem` roles -> Nothing
+            | otherwise -> Just RootLink
+          Nothing -> Just RootLink
         _ -> Nothing
     , extendedNetwork:
       [ Button.withStyles
