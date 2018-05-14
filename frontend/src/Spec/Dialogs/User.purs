@@ -116,7 +116,7 @@ userDialog
             IxSignal.subscribe (\_ -> submitValue) passwordSignal
             IxSignal.set roles rolesSignal
             void $ setTimeout 200 $
-              One.putQueue setPartialQueue (Email.toString email)
+              One.putQueue setQueue (Email.EmailGood email)
       in  [ Email.email
             { label: R.text "Email"
             , fullWidth: true
@@ -125,7 +125,7 @@ userDialog
             , emailSignal: emailSignal
             , parentSignal: Nothing
             , updatedQueue: emailQueue
-            , setPartialQueue
+            , setQueue
             }
           , Password.password
             { label: R.text "Password"
@@ -165,5 +165,5 @@ userDialog
     emailQueue = unsafePerformEff $ readOnly <$> IxQueue.newIxQueue
     passwordQueue = unsafePerformEff $ readOnly <$> IxQueue.newIxQueue
     passwordErrorQueue = unsafePerformEff $ writeOnly <$> One.newQueue
-    setPartialQueue = unsafePerformEff $ writeOnly <$> One.newQueue
+    setQueue = unsafePerformEff $ writeOnly <$> One.newQueue
     rolesSignal = unsafePerformEff $ IxSignal.make []
