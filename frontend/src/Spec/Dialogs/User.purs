@@ -106,9 +106,7 @@ userDialog
             let submitValue = do
                   mEmail <- IxSignal.get emailSignal
                   x <- case mEmail of
-                    Email.EmailGood _ -> do
-                      p1 <- IxSignal.get passwordSignal
-                      pure (p1 == "")
+                    Email.EmailGood _ -> pure false
                     _ -> pure true
                   submitDisabled x
             IxQueue.onIxQueue emailQueue k \_ -> submitValue
