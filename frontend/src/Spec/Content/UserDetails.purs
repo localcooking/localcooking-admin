@@ -62,13 +62,13 @@ spec {siteLinks} = T.simpleSpec performAction render
 
     render :: T.Render State Unit Action
     render dispatch props state children =
-      [ unsafePartial
-      $ case state.page of -- TODO pack currentPageSignal listener to this level, so
+      [ case state.page of -- TODO pack currentPageSignal listener to this level, so
                             -- side buttons aren't redrawn
           UserDetailsLink mUserDetails -> case mUserDetails of
+            Just UserDetailsGeneralLink -> general
             Nothing -> general
-            Just x -> case x of
-              UserDetailsGeneralLink -> general
+            _ -> R.text ""
+          _ -> R.text ""
       ]
 
 
