@@ -64,7 +64,7 @@ data Action
 spec :: forall eff
       . { userDialogQueue :: OneIO.IOQueues (Effects eff)
                              {email :: EmailAddress, roles :: Array UserRole}
-                             (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
+                             (Maybe (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole}))
         , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
         , setUserQueues   :: SetUserSparrowClientQueues (Effects eff)
         , getUsersQueues  :: GetUsersSparrowClientQueues (Effects eff)
@@ -76,22 +76,33 @@ spec {userDialogQueue,userCloseQueue,setUserQueues,getUsersQueues,authTokenSigna
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
       ClickedUser {email,roles} -> do
-        mUser <- liftBase (OneIO.callAsync userDialogQueue {email,roles})
-        case mUser of
-          Nothing -> pure unit
-          Just xs -> do
-            mAuthToken <- liftEff (IxSignal.get authTokenSignal)
-            case mAuthToken of
-              Nothing -> liftEff $ log "no auth token"
-              Just token -> do
+        mAuthToken <- liftEff (IxSignal.get authTokenSignal)
+        case mAuthToken of
+          Nothing -> liftEff $ log "no auth token"
+          Just token -> do
+            mUser <- liftBase (OneIO.callAsync userDialogQueue {email,roles})
+            case mUser of
+              Just (Just xs) -> do
                 mResult <- liftBase (OneIO.callAsync setUserQueues (AuthInitIn {token, subj: SetUserUpdate xs}))
                 case mResult of
                   Nothing -> pure unit
                   Just _ -> do
+                    liftEff (One.putQueue userCloseQueue unit)
                     mXs <- liftBase (OneIO.callAsync getUsersQueues (AuthInitIn {token, subj: JSONUnit}))
                     case mXs of
                       Just (AuthInitOut {subj: xs}) -> performAction (GotUsers xs) props state
                       _ -> pure unit
+              Just Nothing -> do
+                mResult <- liftBase (OneIO.callAsync setUserQueues (AuthInitIn {token, subj: SetUserDelete email}))
+                case mResult of
+                  Nothing -> pure unit
+                  Just _ -> do
+                    liftEff (One.putQueue userCloseQueue unit)
+                    mXs <- liftBase (OneIO.callAsync getUsersQueues (AuthInitIn {token, subj: JSONUnit}))
+                    case mXs of
+                      Just (AuthInitOut {subj: xs}) -> performAction (GotUsers xs) props state
+                      _ -> pure unit
+              Nothing -> pure unit
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -127,7 +138,7 @@ users :: forall eff
          , setUserQueues :: SetUserSparrowClientQueues (Effects eff)
          , userDialogQueue :: OneIO.IOQueues (Effects eff)
                               {email :: EmailAddress, roles :: Array UserRole}
-                              (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
+                              (Maybe (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole}))
          , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
          , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
          } -> R.ReactElement

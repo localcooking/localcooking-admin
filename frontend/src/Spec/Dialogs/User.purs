@@ -75,14 +75,14 @@ userDialog :: forall eff
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
            -> { userDialogQueue :: OneIO.IOQueues (Effects eff)
                                    {email :: EmailAddress, roles :: Array UserRole}
-                                   (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
+                                   (Maybe (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole}))
               , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
               , env             :: Env
               }
            -> R.ReactElement
 userDialog
   params
-  { userDialogQueue
+  { userDialogQueue: userDialogQueue@OneIO.IOQueues {output: userDialogOutputQueue}
   , userCloseQueue
   , env
   } =
@@ -93,7 +93,8 @@ userDialog
   , buttons: \{close} ->
     [ button
       { color: Button.secondary
-      , onTouchTap: mkEffFn1 \_ -> pure unit -- unsafeCoerceEff (dispatch Delete)
+      , onTouchTap: mkEffFn1 \_ ->
+          unsafeCoerceEff $ One.putQueue userDialogOutputQueue (Just Nothing)
       } [R.text "Delete"]
     ]
   , title: "User"
@@ -150,7 +151,7 @@ userDialog
               then pure Nothing
               else Just <$> liftBase (hashPassword {salt: env.salt, password: pw})
           roles <- liftEff (IxSignal.get rolesSignal)
-          pure (Just {email,password,roles})
+          pure (Just (Just {email,password,roles}))
         _ -> do
           liftEff $ log "bad email!" -- FIXME bug out somehow?
           pure Nothing
