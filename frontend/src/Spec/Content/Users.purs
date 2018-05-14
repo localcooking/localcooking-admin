@@ -1,6 +1,7 @@
 module Spec.Content.Users where
 
 import Client.Dependencies.Users.Get (UserListing (..), GetUsersSparrowClientQueues)
+import Client.Dependencies.Users.Set (SetUserInitIn' (..), SetUserSparrowClientQueues)
 import LocalCooking.Client.Dependencies.AccessToken.Generic (AuthInitOut (..), AuthInitIn (..))
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import LocalCooking.Common.User.Role (UserRole)
@@ -12,8 +13,9 @@ import Data.Argonaut.JSONUnit (JSONUnit (..))
 import Data.Foldable (intercalate)
 import Control.Monad.Base (liftBase)
 import Control.Monad.Eff.Ref (REF)
+import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
-import Control.Monad.Eff.Console (log)
+import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Text.Email.Validate as Email
 import Text.Email.Validate (EmailAddress)
@@ -41,6 +43,7 @@ import IxSignal.Internal as IxSignal
 
 type Effects eff =
   ( ref :: REF
+  , console :: CONSOLE
   | eff)
 
 
@@ -61,17 +64,34 @@ data Action
 spec :: forall eff
       . { userDialogQueue :: OneIO.IOQueues (Effects eff)
                              {email :: EmailAddress, roles :: Array UserRole}
-                             (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
+                             (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
         , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
+        , setUserQueues   :: SetUserSparrowClientQueues (Effects eff)
+        , getUsersQueues  :: GetUsersSparrowClientQueues (Effects eff)
+        , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
         }
      -> T.Spec (Effects eff) State Unit Action
-spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
+spec {userDialogQueue,userCloseQueue,setUserQueues,getUsersQueues,authTokenSignal} = T.simpleSpec performAction render
   where
     performAction action props state = case action of
       GotUsers xs -> void $ T.cotransform _ { users = Just xs }
       ClickedUser {email,roles} -> do
         mUser <- liftBase (OneIO.callAsync userDialogQueue {email,roles})
-        pure unit
+        case mUser of
+          Nothing -> pure unit
+          Just xs -> do
+            mAuthToken <- liftEff (IxSignal.get authTokenSignal)
+            case mAuthToken of
+              Nothing -> liftEff $ log "no auth token"
+              Just token -> do
+                mResult <- liftBase (OneIO.callAsync setUserQueues (AuthInitIn {token, subj: SetUserUpdate xs}))
+                case mResult of
+                  Nothing -> pure unit
+                  Just _ -> do
+                    mXs <- liftBase (OneIO.callAsync getUsersQueues (AuthInitIn {token, subj: JSONUnit}))
+                    case mXs of
+                      Just (AuthInitOut {subj: xs}) -> performAction (GotUsers xs) props state
+                      _ -> pure unit
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -104,19 +124,30 @@ spec {userDialogQueue,userCloseQueue} = T.simpleSpec performAction render
 
 users :: forall eff
        . { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
+         , setUserQueues :: SetUserSparrowClientQueues (Effects eff)
          , userDialogQueue :: OneIO.IOQueues (Effects eff)
                               {email :: EmailAddress, roles :: Array UserRole}
-                              (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
+                              (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
          , userCloseQueue :: One.Queue (write :: WRITE) (Effects eff) Unit
          , authTokenSignal :: IxSignal (Effects eff) (Maybe AuthToken)
          } -> R.ReactElement
 users
   { authTokenSignal
-  , getUsersQueues: OneIO.IOQueues {input: getUsersInput, output: getUsersOutput}
+  , getUsersQueues: getUsersQueues@OneIO.IOQueues {input: getUsersInput, output: getUsersOutput}
+  , setUserQueues
   , userDialogQueue
   , userCloseQueue
   } =
-  let {spec: reactSpec, dispatcher} = T.createReactSpec (spec {userDialogQueue, userCloseQueue}) initialState
+  let {spec: reactSpec, dispatcher} =
+        T.createReactSpec
+          ( spec
+            { userDialogQueue
+            , userCloseQueue
+            , getUsersQueues
+            , setUserQueues
+            , authTokenSignal
+            }
+          ) initialState
       reactSpec' =
           Queue.whileMountedOne
             (allowReading getUsersOutput)

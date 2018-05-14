@@ -12,6 +12,7 @@ import LocalCooking.Branding.Main (mainBrand)
 import LocalCooking.Main (defaultMain)
 import LocalCooking.Spec.Icons.ChefHat (chefHatViewBox, chefHat)
 import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
+import Client.Dependencies.Users.Set (SetUserSparrowClientQueues)
 
 import Sparrow.Client (unpackClient)
 import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
@@ -82,9 +83,12 @@ main = do
 
   ( getUsersQueues :: GetUsersSparrowClientQueues Effects
     ) <- newSparrowStaticClientQueues
+  ( setUserQueues :: SetUserSparrowClientQueues Effects
+    ) <- newSparrowStaticClientQueues
 
   let deps = do
         unpackClient (Topic ["users","get"]) (sparrowStaticClientQueues getUsersQueues)
+        unpackClient (Topic ["users","set"]) (sparrowStaticClientQueues setUserQueues)
 
   defaultMain
     { env
@@ -116,6 +120,7 @@ main = do
       [ content
         params
         { getUsersQueues
+        , setUserQueues
         , env
         }
       ]

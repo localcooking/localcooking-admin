@@ -5,6 +5,7 @@ import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
 import Spec.Dialogs.User (userDialog)
 import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
+import Client.Dependencies.Users.Set (SetUserSparrowClientQueues)
 import Links (SiteLinks (..))
 import LocalCooking.Window (WindowSize)
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
@@ -74,12 +75,14 @@ getLCAction = prism' id Just
 spec :: forall eff
       . LocalCookingParams SiteLinks UserDetails (Effects eff)
      -> { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
+        , setUserQueues  :: SetUserSparrowClientQueues (Effects eff)
         , env            :: Env
         }
      -> T.Spec (Effects eff) State Unit Action
 spec
   params@{windowSizeSignal,currentPageSignal,authTokenSignal,siteLinks,toURI}
   { getUsersQueues
+  , setUserQueues
   , env
   } = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
   where
@@ -96,6 +99,7 @@ spec
       UsersLink ->
         [ users
           { getUsersQueues
+          , setUserQueues
           , userDialogQueue
           , userCloseQueue
           , authTokenSignal
@@ -117,11 +121,13 @@ spec
 content :: forall eff
          . LocalCookingParams SiteLinks UserDetails (Effects eff)
         -> { getUsersQueues :: GetUsersSparrowClientQueues (Effects eff)
+           , setUserQueues  :: SetUserSparrowClientQueues (Effects eff)
            , env            :: Env
            } -> R.ReactElement
 content
   params
   { getUsersQueues
+  , setUserQueues
   , env
   } =
   let {spec: reactSpec, dispatcher} =
@@ -129,6 +135,7 @@ content
           ( spec
             params
             { getUsersQueues
+            , setUserQueues
             , env
             }
           )

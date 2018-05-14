@@ -75,7 +75,7 @@ userDialog :: forall eff
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
            -> { userDialogQueue :: OneIO.IOQueues (Effects eff)
                                    {email :: EmailAddress, roles :: Array UserRole}
-                                   (Maybe {email :: EmailAddress, password :: HashedPassword, roles :: Array UserRole})
+                                   (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole})
               , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
               , env             :: Env
               }
@@ -147,22 +147,12 @@ userDialog
       case mEmail of
         Email.EmailGood email -> do
           pw <- liftEff (IxSignal.get passwordSignal)
-          hashedPassword <- liftBase (hashPassword {salt: env.salt, password: pw})
-          -- mVerify <- OneIO.callAsync
-          --   passwordVerifyQueues
-          --   (PasswordVerifyInitInUnauth {email,password: hashedPassword})
-          -- case mVerify of
-          --   Just PasswordVerifyInitOutSuccess -> do
-          --     pure (Just {email,password: hashedPassword}) -- FIXME delay until other queues are finished - user details, auth token, etc.
-          --   _ -> do
-          --     liftEff $ case mVerify of
-          --       Nothing ->
-          --         One.putQueue errorMessageQueue (SnackbarMessageAuthFailure AuthExistsFailure)
-          --       _ ->
-          --         One.putQueue errorMessageQueue $ SnackbarMessageAuthFailure $ AuthTokenLoginFailure BadPassword
-          --     liftEff $ One.putQueue passwordErrorQueue unit
-          --     pure Nothing
-          pure Nothing
+          password <-
+            if pw == ""
+              then pure Nothing
+              else Just <$> liftBase (hashPassword {salt: env.salt, password: pw})
+          roles <- liftEff (IxSignal.get rolesSignal)
+          pure (Just {email,password,roles})
         _ -> do
           liftEff $ log "bad email!" -- FIXME bug out somehow?
           pure Nothing
