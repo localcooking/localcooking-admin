@@ -103,6 +103,7 @@ topbarButtons params =
       reactSpec' =
           whileMountedLocalCooking
             params
+            "Spec.Topbar.Buttons"
             LocalCookingAction
             (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec

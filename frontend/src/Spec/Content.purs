@@ -92,9 +92,7 @@ spec
     render dispatch props state children = case state.currentPage of
       RootLink ->
         [ root
-          { windowSizeSignal
-          , toURI
-          }
+          params
         ]
       UsersLink ->
         [ users
@@ -143,6 +141,7 @@ content
       reactSpec' =
           whileMountedLocalCooking
             params
+            "Spec.Content"
             id
             (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec

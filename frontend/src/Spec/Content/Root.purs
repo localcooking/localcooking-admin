@@ -1,14 +1,17 @@
 module Spec.Content.Root where
 
 import LocalCooking.Window (WindowSize (Laptop))
-import Links (AboutPageLinks (..))
+import Links (AboutPageLinks (..), SiteLinks)
+import User (UserDetails)
 import LocalCooking.Links.Class (toLocation)
+import LocalCooking.Types.Params (LocalCookingParams, initLocalCookingState, LocalCookingState, LocalCookingAction, whileMountedLocalCooking, performActionLocalCooking)
 
 import Prelude
 import Data.UUID (GENUUID)
 import Data.URI (URI)
 import Data.URI.URI as URI
 import Data.URI.Location (Location)
+import Data.Lens (lens)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
@@ -41,17 +44,12 @@ import IxSignal.Internal as IxSignal
 
 
 
-type State =
-  { windowSize :: WindowSize
-  }
+type State = LocalCookingState SiteLinks UserDetails
 
-initialState :: {initWindowSize :: WindowSize} -> State
-initialState {initWindowSize} =
-  { windowSize: initWindowSize
-  }
+initialState :: LocalCookingState SiteLinks UserDetails -> State
+initialState = id
 
-data Action
-  = ChangedWindowSize WindowSize
+type Action = LocalCookingAction SiteLinks UserDetails
 
 type Effects eff =
   ( ref       :: REF
@@ -66,8 +64,7 @@ spec :: forall eff
      -> T.Spec eff State Unit Action
 spec {toURI} = T.simpleSpec performAction render
   where
-    performAction action props state = case action of
-      ChangedWindowSize w -> void $ T.cotransform _ { windowSize = w }
+    performAction = performActionLocalCooking (lens id (\_ x -> x))
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -85,18 +82,17 @@ spec {toURI} = T.simpleSpec performAction render
 
 
 root :: forall eff
-      . { windowSizeSignal :: IxSignal (Effects eff) WindowSize
-        , toURI :: Location -> URI
-        }
+      . LocalCookingParams SiteLinks UserDetails (Effects eff)
      -> R.ReactElement
-root {windowSizeSignal,toURI} =
-  let init =
-        { initWindowSize: unsafePerformEff $ IxSignal.get windowSizeSignal
-        }
-      {spec: reactSpec, dispatcher} = T.createReactSpec (spec {toURI}) (initialState init)
+root params =
+  let {spec: reactSpec, dispatcher} = T.createReactSpec
+        ( spec {toURI: params.toURI}
+        ) (initialState (unsafePerformEff (initLocalCookingState params)))
       reactSpec' =
-          Signal.whileMountedIxUUID
-            windowSizeSignal
-            (\this x -> unsafeCoerceEff $ dispatcher this (ChangedWindowSize x))
-          reactSpec
+          whileMountedLocalCooking
+            params
+            "Spec.Content.Root"
+            id
+            (\this -> unsafeCoerceEff <<< dispatcher this)
+            reactSpec
   in  R.createElement (R.createClass reactSpec') unit []
