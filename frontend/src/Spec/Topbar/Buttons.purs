@@ -65,11 +65,11 @@ getLCAction = prism' LocalCookingAction $ case _ of
 spec :: forall eff
       . LocalCookingParams SiteLinks UserDetails (Effects eff)
      -> T.Spec (Effects eff) State Unit Action
-spec {siteLinks,toURI} = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
+spec {siteLinks,toURI} = T.simpleSpec performAction render
   where
     performAction action props state = case action of
       Clicked x -> liftEff (siteLinks x)
-      _ -> pure unit
+      LocalCookingAction a -> performActionLocalCooking getLCState a props state
 
     render :: T.Render State Unit Action
     render dispatch props state children =
@@ -103,7 +103,7 @@ topbarButtons params =
       reactSpec' =
           whileMountedLocalCooking
             params
-            getLCAction
+            LocalCookingAction
             (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec
   in  R.createElement (R.createClass reactSpec') unit []

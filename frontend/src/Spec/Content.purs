@@ -84,9 +84,9 @@ spec
   { getUsersQueues
   , setUserQueues
   , env
-  } = T.simpleSpec (performAction <> performActionLocalCooking getLCState getLCAction) render
+  } = T.simpleSpec performAction render
   where
-    performAction action props state = pure unit
+    performAction = performActionLocalCooking getLCState
 
     render :: T.Render State Unit Action
     render dispatch props state children = case state.currentPage of
@@ -143,7 +143,7 @@ content
       reactSpec' =
           whileMountedLocalCooking
             params
-            getLCAction
+            id
             (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec
   in  R.createElement (R.createClass reactSpec') unit []
