@@ -1,15 +1,15 @@
 module Spec.Topbar.Buttons where
 
 import Links (SiteLinks (UsersLink))
-import LocalCooking.Links.Class (toLocation)
-import LocalCooking.Common.User.Role (UserRole (Admin))
-import LocalCooking.Types.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
 import User (UserDetails (..))
+import LocalCooking.Semantics.Common (User (..))
+import LocalCooking.Common.User.Role (UserRole (Admin))
+import LocalCooking.Thermite.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
 
 import Prelude
 import Data.URI (URI)
 import Data.URI.URI as URI
-import Data.URI.Location (Location)
+import Data.URI.Location (Location, toLocation)
 import Data.UUID (GENUUID)
 import Data.Array as Array
 import Data.Maybe (Maybe (..))
@@ -77,7 +77,7 @@ spec {siteLinks,toURI} = T.simpleSpec performAction render
         { color: Button.primary
         , disabled: state.currentPage == UsersLink
           || ( case state.userDetails of
-                  Just (UserDetails {roles})
+                  Just (UserDetails {user: User {roles}})
                     | Array.elem Admin roles -> false
                     | otherwise -> true
                   _ -> true

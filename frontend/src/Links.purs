@@ -1,6 +1,6 @@
 module Links where
 
-import LocalCooking.Links.Class (class ToLocation, toLocation, class FromLocation, fromLocation, class LocalCookingSiteLinks, class LocalCookingUserDetailsLinks, replaceState', defaultSiteLinksPathParser)
+import LocalCooking.Global.Links.Class (class LocalCookingSiteLinks, class LocalCookingUserDetailsLinks, replaceState', defaultSiteLinksPathParser)
 
 import Prelude
 import Data.Maybe (Maybe (..), maybe)
@@ -8,7 +8,7 @@ import Data.Either (Either (..))
 import Data.URI (Query (..))
 import Data.URI.URI as URI
 import Data.URI.Path as URIPath
-import Data.URI.Location (Location (..), fromURI, printLocation)
+import Data.URI.Location (Location (..), fromURI, printLocation, class ToLocation, class FromLocation, toLocation, fromLocation)
 import Data.StrMap as StrMap
 import Data.Path.Pathy ((</>), dir, file, rootDir, Path, Rel, File, Sandboxed)
 import Data.Generic (class Generic, gEq, gShow)

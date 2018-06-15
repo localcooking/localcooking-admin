@@ -1,16 +1,14 @@
 module Spec.Content.Root where
 
-import LocalCooking.Window (WindowSize (Laptop))
 import Links (AboutPageLinks (..), SiteLinks)
 import User (UserDetails)
-import LocalCooking.Links.Class (toLocation)
-import LocalCooking.Types.Params (LocalCookingParams, initLocalCookingState, LocalCookingState, LocalCookingAction, whileMountedLocalCooking, performActionLocalCooking)
+import LocalCooking.Thermite.Params (LocalCookingParams, initLocalCookingState, LocalCookingState, LocalCookingAction, whileMountedLocalCooking, performActionLocalCooking)
 
 import Prelude
 import Data.UUID (GENUUID)
 import Data.URI (URI)
 import Data.URI.URI as URI
-import Data.URI.Location (Location)
+import Data.URI.Location (Location, toLocation)
 import Data.Lens (lens)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Ref (REF)
@@ -21,6 +19,7 @@ import React as R
 import React.DOM as R
 import React.DOM.Props as RP
 import React.Signal.WhileMounted as Signal
+import DOM.HTML.Window.Extra (WindowSize (Laptop))
 
 import MaterialUI.Types (createStyles)
 import MaterialUI.Typography (typography)

@@ -1,19 +1,18 @@
 module Main where
 
 import Links (SiteLinks (..), ImageLinks (Logo40Png), initSiteLinks)
-import Types.Env (env)
 import Colors (palette)
 import User (UserDetails (..), PreUserDetails (..))
 import Spec.Topbar.Buttons (topbarButtons)
 import Spec.Content (content)
 import Spec.Content.UserDetails (userDetails)
-import LocalCooking.Links.Class (toLocation)
-import LocalCooking.Branding.Main (mainBrand)
+import LocalCooking.Spec.Misc.Branding (mainBrand)
+import LocalCooking.Spec.Misc.Icons.ChefHat (chefHatViewBox, chefHat)
 import LocalCooking.Main (defaultMain)
-import LocalCooking.Spec.Icons.ChefHat (chefHatViewBox, chefHat)
 import LocalCooking.Common.User.Role (UserRole (Admin))
-import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
-import Client.Dependencies.Users.Set (SetUserSparrowClientQueues)
+import LocalCooking.Types.ServerToClient (env)
+import LocalCooking.Dependencies.Admin (newAdminQueues, adminDependencies, GetUsersSparrowClientQueues, SetUserSparrowClientQueues)
+import LocalCooking.Semantics.Common (User (..))
 
 import Sparrow.Client (unpackClient)
 import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
@@ -22,6 +21,7 @@ import Sparrow.Types (Topic (..))
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
+import Data.URI.Location (toLocation)
 import Data.Array as Array
 import Control.Monad.Aff (sequential)
 import Control.Monad.Eff (Eff)
@@ -82,21 +82,14 @@ main = do
 
   initSiteLink <- initSiteLinks
 
-
-  ( getUsersQueues :: GetUsersSparrowClientQueues Effects
-    ) <- newSparrowStaticClientQueues
-  ( setUserQueues :: SetUserSparrowClientQueues Effects
-    ) <- newSparrowStaticClientQueues
-
-  let deps = do
-        unpackClient (Topic ["users","get"]) (sparrowStaticClientQueues getUsersQueues)
-        unpackClient (Topic ["users","set"]) (sparrowStaticClientQueues setUserQueues)
+  adminQueues <- newAdminQueues
 
   defaultMain
     { env
     , initSiteLinks: initSiteLink
     , palette
-    , deps
+    , siteQueues: adminQueues
+    , deps: adminDependencies
     , leftDrawer:
       { buttons: \{siteLinks} ->
         [ divider {}
@@ -121,8 +114,8 @@ main = do
     , content: \params ->
       [ content
         params
-        { getUsersQueues
-        , setUserQueues
+        { getUsersQueues: adminQueues.getUsersQueues
+        , setUserQueues: adminQueues.setUserQueues
         , env
         }
       ]
@@ -131,15 +124,15 @@ main = do
       , content: \{currentPageSignal,siteLinks} ->
         [ userDetails {currentPageSignal,siteLinks}
         ]
-      , obtain: \{email,roles} -> do
-        PreUserDetails mEmail roles <- sequential $ PreUserDetails <$> email <*> roles
-        case mEmail of
-          Just email -> pure $ Just $ UserDetails {email,roles}
+      , obtain: \{user} -> do
+        PreUserDetails mUser <- sequential $ PreUserDetails <$> user
+        case mUser of
+          Just user -> pure $ Just $ UserDetails {user}
           _ -> pure Nothing
       }
     , extraRedirect: \link mUserDetails -> case link of
         UsersLink -> case mUserDetails of
-          Just (UserDetails {roles})
+          Just (UserDetails {user: User {roles}})
             | Admin `Array.elem` roles -> Nothing
             | otherwise -> Just RootLink
           Nothing -> Just RootLink

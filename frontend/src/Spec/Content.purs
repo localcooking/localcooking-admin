@@ -4,16 +4,13 @@ import Spec.Content.Root (root)
 import Spec.Content.Users (users)
 import Spec.Content.UserDetails (userDetails)
 import Spec.Dialogs.User (userDialog)
-import Client.Dependencies.Users.Get (GetUsersSparrowClientQueues)
-import Client.Dependencies.Users.Set (SetUserSparrowClientQueues)
 import Links (SiteLinks (..))
-import LocalCooking.Window (WindowSize)
-import LocalCooking.Common.AccessToken.Auth (AuthToken)
-import LocalCooking.Types.Env (Env)
-import LocalCooking.Types.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
-import LocalCooking.Spec.Snackbar (SnackbarMessage (..))
 import User (UserDetails)
-import Types.Env (env)
+import LocalCooking.Common.AccessToken.Auth (AuthToken)
+import LocalCooking.Thermite.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
+import LocalCooking.Types.ServerToClient (env)
+import LocalCooking.Spec.Types.Env (Env)
+import LocalCooking.Dependencies.Admin (GetUsersSparrowClientQueues, SetUserSparrowClientQueues)
 
 import Prelude
 
@@ -22,6 +19,8 @@ import React as R
 import React.DOM as R
 import React.DOM.Props as RP
 import React.Signal.WhileMounted as Signal
+import DOM.HTML.Window.Extra (WindowSize)
+
 import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
 import Data.URI (URI)

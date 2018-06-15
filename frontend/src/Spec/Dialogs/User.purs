@@ -1,27 +1,28 @@
 module Spec.Dialogs.User where
 
-import Spec.Dialogs.User.Roles as Roles
 import Links (SiteLinks)
 import User (UserDetails)
 import LocalCooking.Spec.Dialogs.Generic (genericDialog)
-import LocalCooking.Spec.Form.Email as Email
-import LocalCooking.Spec.Form.Password as Password
-import LocalCooking.Types.Env (Env)
-import LocalCooking.Types.Params (LocalCookingParams)
-import LocalCooking.Window (WindowSize)
-import LocalCooking.Client.Dependencies.PasswordVerify (PasswordVerifySparrowClientQueues, PasswordVerifyInitIn (PasswordVerifyInitInUnauth), PasswordVerifyInitOut (PasswordVerifyInitOutSuccess))
-import LocalCooking.Links.Class (registerLink, toLocation, class LocalCookingSiteLinks, class ToLocation)
-import LocalCooking.Common.Password (HashedPassword, hashPassword)
+import LocalCooking.Spec.Common.Form.Email as Email
+import LocalCooking.Spec.Common.Form.Password as Password
+import LocalCooking.Spec.Common.Form.Checkbox as Checkbox
+import LocalCooking.Spec.Types.Env (Env)
+import LocalCooking.Thermite.Params (LocalCookingParams)
+import LocalCooking.Global.Links.Class (registerLink, class LocalCookingSiteLinks)
+import LocalCooking.Common.User.Password (HashedPassword, hashPassword)
 import LocalCooking.Common.User.Role (UserRole (..))
+import LocalCooking.Semantics.Common (User (..))
+import LocalCooking.Semantics.Admin (SetUser (..))
 
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.Either (Either (..))
 import Data.URI (URI)
 import Data.URI.URI (print) as URI
-import Data.URI.Location (Location)
+import Data.URI.Location (Location, toLocation, class ToLocation)
 import Data.UUID (genUUID, GENUUID)
 import Data.Array as Array
+import Data.Generic (class Generic, gEq, gCompare)
 import Text.Email.Validate (EmailAddress)
 import Text.Email.Validate as Email
 import Control.Monad.Base (liftBase)
@@ -38,8 +39,8 @@ import React as R
 import React.DOM as R
 import React.DOM.Props as RP
 import React.DOM.Props.PreventDefault (preventDefault)
--- import React.Icons (facebookIcon, twitterIcon, googleIcon)
 import DOM (DOM)
+import DOM.HTML.Window.Extra (WindowSize)
 
 import MaterialUI.Types (createStyles)
 import MaterialUI.Button (button)
@@ -71,11 +72,23 @@ type Effects eff =
   | eff)
 
 
+data EmailConfirmed = EmailConfirmed
+
+derive instance gnenericEmailConfirmed :: Generic EmailConfirmed
+
+instance eqEmailConfirmed :: Eq EmailConfirmed where
+  eq = gEq
+
+instance ordEmailConfirmed :: Ord EmailConfirmed where
+  compare = gCompare
+
+instance showEmailConfirmed :: Show EmailConfirmed where
+  show EmailConfirmed = "Has confirmed email"
+
+
 userDialog :: forall eff
             . LocalCookingParams SiteLinks UserDetails (Effects eff)
-           -> { userDialogQueue :: OneIO.IOQueues (Effects eff)
-                                   {email :: EmailAddress, roles :: Array UserRole}
-                                   (Maybe (Maybe {email :: EmailAddress, password :: Maybe HashedPassword, roles :: Array UserRole}))
+           -> { userDialogQueue :: OneIO.IOQueues (Effects eff) User (Maybe SetUser)
               , userCloseQueue  :: One.Queue (write :: WRITE) (Effects eff) Unit
               , env             :: Env
               }
@@ -90,18 +103,18 @@ userDialog
   params
   { dialogQueue: userDialogQueue
   , closeQueue: Just userCloseQueue
-  , buttons: \{close} ->
+  , buttons: \{close,input: u} ->
     [ button
       { color: Button.secondary
       , onTouchTap: mkEffFn1 \_ ->
-          unsafeCoerceEff $ One.putQueue userDialogOutputQueue (Just Nothing)
+          unsafeCoerceEff $ One.putQueue userDialogOutputQueue $ Just $ SetUserDelete u
       } [R.text "Delete"]
     ]
   , title: "User"
   , submitValue: "Save"
   , pends: true
   , content:
-    { component: \{submitDisabled,input: {email,roles}} ->
+    { component: \{submitDisabled,input: User {email,roles,emailConfirmed}} ->
       let _ = unsafePerformEff $ do
             k <- show <$> genUUID
             let submitValue = do
@@ -115,6 +128,7 @@ userDialog
             IxSignal.subscribe (\_ -> submitValue) emailSignal
             IxSignal.subscribe (\_ -> submitValue) passwordSignal
             IxSignal.set roles rolesSignal
+            IxSignal.set (if emailConfirmed then [EmailConfirmed] else []) confirmedSignal
             void $ setTimeout 200 $
               One.putQueue setQueue (Email.EmailGood email)
       in  [ Email.email
@@ -137,21 +151,32 @@ userDialog
             , updatedQueue: passwordQueue
             , errorQueue: passwordErrorQueue
             }
-          , Roles.roles
-            { rolesSignal
+          , Checkbox.checkboxes
+            { entriesSignal: rolesSignal
+            , label: "User Roles"
+            , entries: [Customer, Chef, Farmer, Editor, Manager, Admin]
+            }
+          , Checkbox.checkboxes
+            { entriesSignal: confirmedSignal
+            , label: "Email Confirmed"
+            , entries: [EmailConfirmed]
             }
           ]
-    , obtain: do
+    , obtain: \(User {id,created,socialLogin}) -> do
       mEmail <- liftEff (IxSignal.get emailSignal)
       case mEmail of
         Email.EmailGood email -> do
-          pw <- liftEff (IxSignal.get passwordSignal)
-          password <-
+          newPassword <- do
+            pw <- liftEff (IxSignal.get passwordSignal)
             if pw == ""
               then pure Nothing
               else Just <$> liftBase (hashPassword {salt: env.salt, password: pw})
           roles <- liftEff (IxSignal.get rolesSignal)
-          pure (Just (Just {email,password,roles}))
+          emailConfirmed <- not <<< Array.null <$> liftEff (IxSignal.get confirmedSignal)
+          pure $ Just $ SetUserUpdate
+            { user: User {id,created,email,socialLogin,emailConfirmed,roles}
+            , newPassword
+            }
         _ -> do
           liftEff $ log "bad email!" -- FIXME bug out somehow?
           pure Nothing
@@ -167,3 +192,4 @@ userDialog
     passwordErrorQueue = unsafePerformEff $ writeOnly <$> One.newQueue
     setQueue = unsafePerformEff $ writeOnly <$> One.newQueue
     rolesSignal = unsafePerformEff $ IxSignal.make []
+    confirmedSignal = unsafePerformEff $ IxSignal.make []
