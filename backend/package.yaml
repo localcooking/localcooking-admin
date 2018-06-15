@@ -31,6 +31,9 @@ library:
     - localcooking-shared
     - localcooking-db
     - localcooking-template
+    - localcooking-fb
+    - localcooking-function
+    - localcooking-dependencies
     - aeson
     - attoparsec
     - attoparsec-uri

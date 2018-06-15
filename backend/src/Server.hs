@@ -15,12 +15,12 @@ import Links (SiteLinks)
 
 import LocalCooking.Server (LocalCookingArgs (..))
 import LocalCooking.Colors (LocalCookingColors (..))
-import LocalCooking.Server.Dependencies.AccessToken.Generic (AccessTokenContext)
+-- import LocalCooking.Server.Dependencies.AccessToken.Generic (AccessTokenContext)
 
 import Text.Lucius (Color (..))
 
 
-server :: LocalCookingArgs SiteLinks sec []
+server :: LocalCookingArgs SiteLinks sec -- []
 server = LocalCookingArgs
   { localCookingArgsFrontend = frontend
   , localCookingArgsFrontendMin = frontendMin
