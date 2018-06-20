@@ -1,7 +1,5 @@
 module Spec.Content.Users where
 
--- import Client.Dependencies.Users.Get (UserListing (..), GetUsersSparrowClientQueues)
--- import Client.Dependencies.Users.Set (SetUserInitIn' (..), SetUserSparrowClientQueues)
 import LocalCooking.Dependencies.AccessToken.Generic (AccessInitIn (..))
 import LocalCooking.Common.AccessToken.Auth (AuthToken)
 import LocalCooking.Common.User.Role (UserRole)

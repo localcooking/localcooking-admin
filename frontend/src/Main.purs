@@ -4,21 +4,18 @@ import Links (SiteLinks (..))
 import Colors (palette)
 import User (UserDetails (..), PreUserDetails (..))
 import Spec.Topbar.Buttons (topbarButtons)
+import Spec.Drawers.Buttons (drawersButtons)
 import Spec.Content (content)
 import Spec.Content.UserDetails (userDetails)
+import Spec.Content.UserDetails.Buttons (userDetailsButtons)
 import Spec.Snackbar (messages)
 import LocalCooking.Spec.Misc.Branding (mainBrand)
-import LocalCooking.Spec.Misc.Icons.ChefHat (chefHatViewBox, chefHat)
 import LocalCooking.Main (defaultMain)
 import LocalCooking.Common.User.Role (UserRole (Admin))
 import LocalCooking.Types.ServerToClient (env)
-import LocalCooking.Dependencies.Admin (newAdminQueues, adminDependencies, GetUsersSparrowClientQueues, SetUserSparrowClientQueues)
+import LocalCooking.Dependencies.Admin (newAdminQueues, adminDependencies)
 import LocalCooking.Semantics.Common (User (..))
 import LocalCooking.Global.Links.Internal (ImageLinks (Logo40Png))
-
-import Sparrow.Client (unpackClient)
-import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
-import Sparrow.Types (Topic (..))
 
 import Prelude
 import Data.Maybe (Maybe (..))
@@ -32,23 +29,14 @@ import Control.Monad.Eff.Timer (TIMER)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Console (CONSOLE, log)
-import Control.Monad.Eff.Uncurried (mkEffFn1)
-import Control.Monad.Eff.Unsafe (unsafeCoerceEff)
 import Control.Execution.Immediate (SET_IMMEDIATE_SHIM)
 
-import React as R
 import React.DOM as R
-import React.DOM.SVG as RS
-import React.DOM.Props as RP
 import MaterialUI.InjectTapEvent (INJECT_TAP_EVENT)
-import MaterialUI.Divider (divider)
 import MaterialUI.Button (button)
 import MaterialUI.Button as Button
 import MaterialUI.SvgIcon (svgIcon)
 import MaterialUI.SvgIcon as SvgIcon
-import MaterialUI.ListItem (listItem)
-import MaterialUI.ListItemIcon (listItemIcon)
-import MaterialUI.ListItemText (listItemText)
 import MaterialUI.Types (createStyles)
 import MaterialUI.Icons.People (peopleIcon)
 import DOM (DOM)
@@ -94,39 +82,22 @@ main = do
     , siteQueues: adminQueues
     , deps: adminDependencies
     , leftDrawer:
-      { buttons: \{siteLinks} ->
-        [ divider {}
-        , listItem
-          { button: true
-          , onClick: mkEffFn1 \_ -> unsafeCoerceEff (siteLinks UsersLink)
-          }
-          [ listItemIcon {} peopleIcon
-          , listItemText
-            { primary: "Meals"
-            }
-          ]
-        ]
+      { buttons: drawersButtons
       }
     , topbar:
       { imageSrc: toLocation Logo40Png
-      , buttons: \params ->
-        [ topbarButtons
-          params
-        ]
+      , buttons: topbarButtons
       }
     , content: \params ->
-      [ content
+      content
         params
         { getUsersQueues: adminQueues.getUsersQueues
         , setUserQueues: adminQueues.setUserQueues
         , env
         }
-      ]
     , userDetails:
-      { buttons: \_ -> []
-      , content: \params ->
-        [ userDetails params
-        ]
+      { buttons: userDetailsButtons
+      , content: userDetails
       , obtain: \{user} -> do
         PreUserDetails mUser <- sequential $ PreUserDetails <$> user
         case mUser of
@@ -134,9 +105,7 @@ main = do
           _ -> pure Nothing
       }
     , error:
-      { content:
-        [ messages {siteErrorQueue: readOnly siteErrorQueue}
-        ]
+      { content: messages {siteErrorQueue: readOnly siteErrorQueue}
       }
     , extraRedirect: \link mUserDetails -> case link of
         UsersLink -> case mUserDetails of

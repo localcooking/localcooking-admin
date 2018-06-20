@@ -1,54 +1,41 @@
 module Spec.Content.Root where
 
-import Links (AboutPageLinks (..), SiteLinks)
+import Links (SiteLinks)
 import User (UserDetails)
 import LocalCooking.Thermite.Params (LocalCookingParams, initLocalCookingState, LocalCookingState, LocalCookingAction, whileMountedLocalCooking, performActionLocalCooking)
 
 import Prelude
 import Data.UUID (GENUUID)
-import Data.URI (URI)
-import Data.URI.URI as URI
-import Data.URI.Location (Location, toLocation)
-import Data.Lens (lens)
+import Data.Lens (Lens', lens)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
 
 import Thermite as T
-import React as R
-import React.DOM as R
-import React.DOM.Props as RP
-import React.Signal.WhileMounted as Signal
+import React (ReactElement, createClass, createElement) as R
+import React.DOM (text) as R
 import DOM.HTML.Window.Extra (WindowSize (Laptop))
 
 import MaterialUI.Types (createStyles)
 import MaterialUI.Typography (typography)
 import MaterialUI.Typography as Typography
 import MaterialUI.Divider (divider)
-import MaterialUI.Grid (grid)
-import MaterialUI.Grid as Grid
-import MaterialUI.List (list)
-import MaterialUI.ListItem (listItem)
-import MaterialUI.ListItemText (listItemText)
-import MaterialUI.ListItemIcon (listItemIcon)
-import MaterialUI.Icons.Search (searchIcon)
-import MaterialUI.Icons.PictureInPicture (pictureInPictureIcon)
-import MaterialUI.Icons.ShoppingCart (shoppingCartIcon)
-import MaterialUI.Icons.Timelapse (timelapseIcon)
-import MaterialUI.Icons.LocalShipping (localShippingIcon)
-import MaterialUI.Icons.RestaurantMenu (restaurantMenuIcon)
-
-import IxSignal.Internal (IxSignal)
-import IxSignal.Internal as IxSignal
 
 
 
-type State = LocalCookingState SiteLinks UserDetails
+
+
+type State =
+  { localCooking :: LocalCookingState SiteLinks UserDetails
+  }
 
 initialState :: LocalCookingState SiteLinks UserDetails -> State
-initialState = id
+initialState localCooking =
+  { localCooking
+  }
 
-type Action = LocalCookingAction SiteLinks UserDetails
+data Action
+  = LocalCookingAction (LocalCookingAction SiteLinks UserDetails)
 
 type Effects eff =
   ( ref       :: REF
@@ -56,19 +43,24 @@ type Effects eff =
   , exception :: EXCEPTION
   | eff)
 
+getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
+getLCState = lens (_.localCooking) (_ { localCooking = _ })
+
 
 spec :: forall eff
-      . { toURI :: Location -> URI
-        }
-     -> T.Spec eff State Unit Action
-spec {toURI} = T.simpleSpec performAction render
+      . LocalCookingParams SiteLinks UserDetails (Effects eff)
+     -> T.Spec (Effects eff) State Unit Action
+spec params@{toURI} = T.simpleSpec performAction render
   where
-    performAction = performActionLocalCooking (lens id (\_ x -> x))
+    performAction action props state = case action of
+      LocalCookingAction a -> performActionLocalCooking getLCState a props state
 
     render :: T.Render State Unit Action
     render dispatch props state children =
       [ typography
-        { variant: if state.windowSize < Laptop then Typography.headline else Typography.display1
+        { variant: if state.localCooking.windowSize < Laptop
+                      then Typography.headline
+                      else Typography.display1
         , align: Typography.left
         , color: Typography.primary
         , style: createStyles {marginBottom: "1em"}
@@ -85,13 +77,13 @@ root :: forall eff
      -> R.ReactElement
 root params =
   let {spec: reactSpec, dispatcher} = T.createReactSpec
-        ( spec {toURI: params.toURI}
+        ( spec params
         ) (initialState (unsafePerformEff (initLocalCookingState params)))
       reactSpec' =
           whileMountedLocalCooking
             params
             "Spec.Content.Root"
-            id
+            LocalCookingAction
             (\this -> unsafeCoerceEff <<< dispatcher this)
             reactSpec
   in  R.createElement (R.createClass reactSpec') unit []

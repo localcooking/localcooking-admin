@@ -7,14 +7,12 @@ import LocalCooking.Common.User.Role (UserRole (Admin))
 import LocalCooking.Thermite.Params (LocalCookingParams, LocalCookingState, LocalCookingAction, initLocalCookingState, performActionLocalCooking, whileMountedLocalCooking)
 
 import Prelude
-import Data.URI (URI)
 import Data.URI.URI as URI
-import Data.URI.Location (Location, toLocation)
+import Data.URI.Location (toLocation)
 import Data.UUID (GENUUID)
 import Data.Array as Array
 import Data.Maybe (Maybe (..))
-import Data.Lens (Lens', Prism', lens, prism')
-import Control.Monad.Eff (Eff)
+import Data.Lens (Lens', lens)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Unsafe (unsafePerformEff, unsafeCoerceEff)
 import Control.Monad.Eff.Uncurried (mkEffFn1)
@@ -22,20 +20,28 @@ import Control.Monad.Eff.Ref (REF)
 import Control.Monad.Eff.Exception (EXCEPTION)
 
 import Thermite as T
-import React as R
-import React.DOM as R
-import React.DOM.SVG as RS
-import React.DOM.Props as RP
+import React (ReactElement, createClass, createElement) as R
+import React.DOM (text) as R
 import React.DOM.Props.PreventDefault (preventDefault)
-import React.Signal.WhileMounted as Signal
 
 import MaterialUI.Button (button)
 import MaterialUI.Button as Button
 
-import IxSignal.Internal (IxSignal)
-import IxSignal.Internal as IxSignal
 
 
+
+type State =
+  { localCooking :: LocalCookingState SiteLinks UserDetails
+  }
+
+initialState :: LocalCookingState SiteLinks UserDetails -> State
+initialState localCooking =
+  { localCooking
+  }
+
+data Action
+  = LocalCookingAction (LocalCookingAction SiteLinks UserDetails)
+  | Clicked SiteLinks
 
 type Effects eff =
   ( ref       :: REF
@@ -44,39 +50,28 @@ type Effects eff =
   | eff)
 
 
-type State = LocalCookingState SiteLinks UserDetails
-
-initialState :: LocalCookingState SiteLinks UserDetails -> State
-initialState = id
-
-data Action
-  = Clicked SiteLinks
-  | LocalCookingAction (LocalCookingAction SiteLinks UserDetails)
-
 getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
-getLCState = lens id (\_ x -> x)
+getLCState = lens (_.localCooking) (_ { localCooking = _ })
 
-getLCAction :: Prism' Action (LocalCookingAction SiteLinks UserDetails)
-getLCAction = prism' LocalCookingAction $ case _ of
-  LocalCookingAction x -> Just x
-  _ -> Nothing
 
 
 spec :: forall eff
       . LocalCookingParams SiteLinks UserDetails (Effects eff)
+     -> Array R.ReactElement
      -> T.Spec (Effects eff) State Unit Action
-spec {siteLinks,toURI} = T.simpleSpec performAction render
+spec params@{siteLinks,toURI} prefix = T.simpleSpec performAction render
   where
     performAction action props state = case action of
-      Clicked x -> liftEff (siteLinks x)
       LocalCookingAction a -> performActionLocalCooking getLCState a props state
+      Clicked x -> liftEff (siteLinks x)
 
     render :: T.Render State Unit Action
     render dispatch props state children =
+      prefix <>
       [ button
         { color: Button.primary
-        , disabled: state.currentPage == UsersLink
-          || ( case state.userDetails of
+        , disabled: state.localCooking.currentPage == UsersLink
+          || ( case state.localCooking.userDetails of
                   Just (UserDetails {user: User {roles}})
                     | Array.elem Admin roles -> false
                     | otherwise -> true
@@ -94,10 +89,11 @@ spec {siteLinks,toURI} = T.simpleSpec performAction render
 
 topbarButtons :: forall eff
                . LocalCookingParams SiteLinks UserDetails (Effects eff)
+              -> Array R.ReactElement
               -> R.ReactElement
-topbarButtons params =
+topbarButtons params prefix =
   let {spec:reactSpec,dispatcher} = T.createReactSpec
-        ( spec params
+        ( spec params prefix
         )
         (initialState (unsafePerformEff (initLocalCookingState params)))
       reactSpec' =

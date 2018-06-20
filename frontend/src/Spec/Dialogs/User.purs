@@ -8,25 +8,17 @@ import LocalCooking.Spec.Common.Form.Password as Password
 import LocalCooking.Spec.Common.Form.Checkbox as Checkbox
 import LocalCooking.Spec.Types.Env (Env)
 import LocalCooking.Thermite.Params (LocalCookingParams)
-import LocalCooking.Global.Links.Class (registerLink, class LocalCookingSiteLinks)
-import LocalCooking.Common.User.Password (HashedPassword, hashPassword)
+import LocalCooking.Common.User.Password (hashPassword)
 import LocalCooking.Common.User.Role (UserRole (..))
 import LocalCooking.Semantics.Common (User (..))
 import LocalCooking.Semantics.Admin (SetUser (..))
 
 import Prelude
 import Data.Maybe (Maybe (..))
-import Data.Either (Either (..))
-import Data.URI (URI)
-import Data.URI.URI (print) as URI
-import Data.URI.Location (Location, toLocation, class ToLocation)
 import Data.UUID (genUUID, GENUUID)
 import Data.Array as Array
 import Data.Generic (class Generic, gEq, gCompare)
-import Text.Email.Validate (EmailAddress)
-import Text.Email.Validate as Email
 import Control.Monad.Base (liftBase)
-import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
 import Control.Monad.Eff.Ref (REF)
@@ -35,18 +27,12 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 
-import React as R
-import React.DOM as R
-import React.DOM.Props as RP
-import React.DOM.Props.PreventDefault (preventDefault)
+import React (ReactElement) as R
+import React.DOM (text) as R
 import DOM (DOM)
-import DOM.HTML.Window.Extra (WindowSize)
 
-import MaterialUI.Types (createStyles)
 import MaterialUI.Button (button)
 import MaterialUI.Button as Button
-import MaterialUI.Checkbox (checkbox)
-import MaterialUI.Form (formControl, formGroup, formLabel, formControlLabel)
 import Crypto.Scrypt (SCRYPT)
 
 import Queue.Types (readOnly, writeOnly)

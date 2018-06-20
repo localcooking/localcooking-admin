@@ -8,31 +8,16 @@ import LocalCooking.Thermite.Params (LocalCookingParams, LocalCookingState, Loca
 import Prelude
 
 import Thermite as T
-import React as R
-import React.DOM as R
-import React.DOM.Props as RP
-import React.Signal.WhileMounted as Signal
-
-import MaterialUI.Types (createStyles)
-import MaterialUI.Drawer (drawer)
-import MaterialUI.Drawer as Drawer
-import MaterialUI.Divider (divider)
-import MaterialUI.List (list)
-import MaterialUI.ListItem (listItem)
-import MaterialUI.ListItemText (listItemText)
+import React (ReactElement, createClass, createElement) as R
+import React.DOM (text) as R
 
 import Data.Maybe (Maybe (..))
 import Data.UUID (GENUUID)
-import Data.Lens (Lens', Prism', lens, prism')
-import Control.Monad.Eff (Eff)
+import Data.Lens (Lens', lens)
 import Control.Monad.Eff.Ref (REF)
-import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Control.Monad.Eff.Unsafe (unsafeCoerceEff, unsafePerformEff)
 import Control.Monad.Eff.Exception (EXCEPTION)
 
-import IxSignal.Internal (IxSignal)
-import IxSignal.Internal as IxSignal
-import Partial.Unsafe (unsafePartial)
 
 
 type State =
