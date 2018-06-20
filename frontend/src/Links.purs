@@ -31,26 +31,6 @@ import Test.QuickCheck.Gen (oneOf)
 
 
 
-data ImageLinks
-  = LogoPng
-  | Logo40Png
-  | LogoWhitePng
-  | LogoWhite40Png
-  | IconPng
-  | IconSvg
-
-
-instance toLocationImageLinks :: ToLocation ImageLinks where
-  toLocation x = case x of
-    LogoPng -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "logo.png") Nothing Nothing
-    Logo40Png -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "logo-40.png") Nothing Nothing
-    LogoWhitePng -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "logo-white.png") Nothing Nothing
-    LogoWhite40Png -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "logo-white-40.png") Nothing Nothing
-    IconPng -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "icon.png") Nothing Nothing
-    IconSvg -> Location (Right $ rootDir </> dir "static" </> dir "images" </> file "icon.svg") Nothing Nothing
-
-
-
 data AboutPageLinks
   = Paragraph1Png
   | Paragraph2Png
@@ -98,6 +78,7 @@ userDetailsLinksToPath x = case x of
 
 userDetailsLinksParser :: Parser UserDetailsLinks
 userDetailsLinksParser = do
+  void divider
   let general = do
         void (string "general")
         pure UserDetailsGeneralLink
@@ -106,6 +87,8 @@ userDetailsLinksParser = do
         pure UserDetailsSecurityLink
   try general
     <|> security
+  where
+    divider = char '/'
 
 
 data SiteLinks
@@ -125,46 +108,6 @@ instance arbitrarySiteLinks :: Arbitrary SiteLinks where
         , pure EmailConfirmLink
         ]
 
-initSiteLinks :: forall eff
-               . Eff ( console :: CONSOLE
-                     , dom     :: DOM
-                     , history :: HISTORY
-                     | eff) SiteLinks
-initSiteLinks = do
-  w <- window
-  l <- location w
-  h <- history w
-  p <- href l
-  case URI.parse p of
-    Left e -> do
-      warn $ "Href parsing error: " <> show e
-      replaceState' RootLink h
-      pure RootLink
-    Right uri -> case fromURI uri of
-      Nothing -> do
-        warn $ "URI can't be a location: " <> show uri
-        replaceState' RootLink h
-        pure RootLink
-      Just {location: location@(Location _ mQuery _)} -> case fromLocation location of
-        Left e -> do
-          warn $ "Location can't be a SiteLinks: " <> e <> ", " <> show location
-          replaceState' RootLink h
-          pure RootLink
-        Right (x :: SiteLinks) -> do
-          -- FIXME only adjust for authToken when it's parsable? Why?
-          case mQuery of
-            Nothing -> pure unit
-            Just (Query qs) -> do
-              case
-                    StrMap.lookup "authToken" (StrMap.fromFoldable qs)
-                <|> StrMap.lookup "formData" (StrMap.fromFoldable qs)
-                <|> StrMap.lookup "emailToken" (StrMap.fromFoldable qs)
-                of
-                Nothing -> pure unit
-                Just _ -> flip replaceState' h $ case x of
-                  EmailConfirmLink -> RootLink
-                  _ -> x
-          pure x
 
 derive instance genericSiteLinks :: Generic SiteLinks
 
@@ -193,6 +136,7 @@ instance localCookingSiteLinksSiteLinks :: LocalCookingSiteLinks SiteLinks UserD
   rootLink = RootLink
   registerLink = RegisterLink
   userDetailsLink = UserDetailsLink
+  emailConfirmLink = EmailConfirmLink
   getUserDetailsLink link = case link of
     UserDetailsLink mDetails -> Just mDetails
     _ -> Nothing

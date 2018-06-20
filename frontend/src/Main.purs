@@ -1,11 +1,12 @@
 module Main where
 
-import Links (SiteLinks (..), ImageLinks (Logo40Png), initSiteLinks)
+import Links (SiteLinks (..))
 import Colors (palette)
 import User (UserDetails (..), PreUserDetails (..))
 import Spec.Topbar.Buttons (topbarButtons)
 import Spec.Content (content)
 import Spec.Content.UserDetails (userDetails)
+import Spec.Snackbar (messages)
 import LocalCooking.Spec.Misc.Branding (mainBrand)
 import LocalCooking.Spec.Misc.Icons.ChefHat (chefHatViewBox, chefHat)
 import LocalCooking.Main (defaultMain)
@@ -13,6 +14,7 @@ import LocalCooking.Common.User.Role (UserRole (Admin))
 import LocalCooking.Types.ServerToClient (env)
 import LocalCooking.Dependencies.Admin (newAdminQueues, adminDependencies, GetUsersSparrowClientQueues, SetUserSparrowClientQueues)
 import LocalCooking.Semantics.Common (User (..))
+import LocalCooking.Global.Links.Internal (ImageLinks (Logo40Png))
 
 import Sparrow.Client (unpackClient)
 import Sparrow.Client.Queue (newSparrowClientQueues, newSparrowStaticClientQueues, sparrowClientQueues, sparrowStaticClientQueues)
@@ -55,6 +57,8 @@ import WebSocket (WEBSOCKET)
 import Network.HTTP.Affjax (AJAX)
 import Browser.WebStorage (WEB_STORAGE)
 import Crypto.Scrypt (SCRYPT)
+import Queue.Types (readOnly)
+import Queue.One as One
 
 
 -- | All top-level effects
@@ -80,13 +84,12 @@ main :: Eff Effects Unit
 main = do
   log "Starting Local Cooking Admin frontend..."
 
-  initSiteLink <- initSiteLinks
-
   adminQueues <- newAdminQueues
+  siteErrorQueue <- One.newQueue
+
 
   defaultMain
     { env
-    , initSiteLinks: initSiteLink
     , palette
     , siteQueues: adminQueues
     , deps: adminDependencies
@@ -121,14 +124,19 @@ main = do
       ]
     , userDetails:
       { buttons: \_ -> []
-      , content: \{currentPageSignal,siteLinks} ->
-        [ userDetails {currentPageSignal,siteLinks}
+      , content: \params ->
+        [ userDetails params
         ]
       , obtain: \{user} -> do
         PreUserDetails mUser <- sequential $ PreUserDetails <$> user
         case mUser of
           Just user -> pure $ Just $ UserDetails {user}
           _ -> pure Nothing
+      }
+    , error:
+      { content:
+        [ messages {siteErrorQueue: readOnly siteErrorQueue}
+        ]
       }
     , extraRedirect: \link mUserDetails -> case link of
         UsersLink -> case mUserDetails of

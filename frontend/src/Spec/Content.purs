@@ -40,17 +40,21 @@ import IxSignal.Internal as IxSignal
 import Queue.Types (WRITE, writeOnly)
 import Queue.One as One
 import Queue.One.Aff as OneIO
-import Partial.Unsafe (unsafePartial)
 import DOM (DOM)
 
 
 
-type State = LocalCookingState SiteLinks UserDetails
+type State =
+  { localCooking :: LocalCookingState SiteLinks UserDetails
+  }
 
 initialState :: LocalCookingState SiteLinks UserDetails -> State
-initialState = id
+initialState localCooking =
+  { localCooking
+  }
 
-type Action = LocalCookingAction SiteLinks UserDetails
+data Action
+  = LocalCookingAction (LocalCookingAction SiteLinks UserDetails)
 
 
 type Effects eff =
@@ -64,11 +68,7 @@ type Effects eff =
   | eff)
 
 getLCState :: Lens' State (LocalCookingState SiteLinks UserDetails)
-getLCState = lens id (\_ x -> x)
-
-getLCAction :: Prism' Action (LocalCookingAction SiteLinks UserDetails)
-getLCAction = prism' id Just
-
+getLCState = lens (_.localCooking) (_ { localCooking = _ })
 
 
 spec :: forall eff
@@ -85,10 +85,11 @@ spec
   , env
   } = T.simpleSpec performAction render
   where
-    performAction = performActionLocalCooking getLCState
+    performAction action props state = case action of
+      LocalCookingAction a -> performActionLocalCooking getLCState a props state
 
     render :: T.Render State Unit Action
-    render dispatch props state children = case state.currentPage of
+    render dispatch props state children = case state.localCooking.currentPage of
       RootLink ->
         [ root
           params
@@ -138,10 +139,10 @@ content
           )
           (initialState (unsafePerformEff (initLocalCookingState params)))
       reactSpec' =
-          whileMountedLocalCooking
-            params
-            "Spec.Content"
-            id
-            (\this -> unsafeCoerceEff <<< dispatcher this)
-            reactSpec
+        whileMountedLocalCooking
+          params
+          "Spec.Content"
+          LocalCookingAction
+          (\this -> unsafeCoerceEff <<< dispatcher this)
+          reactSpec
   in  R.createElement (R.createClass reactSpec') unit []
