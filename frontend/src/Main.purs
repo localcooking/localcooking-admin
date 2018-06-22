@@ -222,5 +222,32 @@ main = do
             ]
           , R.text " Restaurants"
           ]
+      , R.text " "
+      , Button.withStyles
+        (\_ ->
+          { root: createStyles
+            { background: "#ffb74d"
+            , color: "#fff"
+            , textTransform: "none"
+            , "&:hover":
+              { background: "#ffe97d"
+              }
+            }
+          }
+        )
+        \{classes} ->
+          button
+          { href: "https://content.localcooking.com/"
+          , classes: Button.createClasses classes
+          , variant: Button.raised
+          }
+          [ svgIcon
+            { viewBox: "0 0 279 279"
+            , color: SvgIcon.inherit
+            }
+            [ mainBrand
+            ]
+          , R.text " Editors"
+          ]
       ]
     }
