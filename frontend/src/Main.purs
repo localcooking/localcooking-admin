@@ -14,7 +14,7 @@ import LocalCooking.Main (defaultMain)
 import LocalCooking.Common.User.Role (UserRole (Admin))
 import LocalCooking.Types.ServerToClient (env)
 import LocalCooking.Dependencies.Admin (newAdminQueues, adminDependencies)
-import LocalCooking.Dependencies.Tag (tagDependencies, newTagQueues)
+import LocalCooking.Dependencies.Tag (tagDependencies, newTagQueues, mountTagSearchQueues)
 import LocalCooking.Semantics.Common (User (..))
 import LocalCooking.Global.Links.Internal (ImageLinks (Logo40Png))
 
@@ -49,7 +49,6 @@ import Browser.WebStorage (WEB_STORAGE)
 import Crypto.Scrypt (SCRYPT)
 import Queue.Types (readOnly, writeOnly)
 import Queue.One as One
-import Sparrow.Client.Queue (mountSparrowClientQueuesSingleton)
 
 
 -- | All top-level effects
@@ -79,41 +78,19 @@ main = do
   tagQueues <- newTagQueues
   siteErrorQueue <- One.newQueue
 
-  searchMealTagsDeltaInQueue <- writeOnly <$> One.newQueue
-  searchMealTagsInitInQueue <- writeOnly <$> One.newQueue
-
-  let searchMealTagsOnDeltaOut deltaOut = case deltaOut of
-        Nothing -> pure unit
-          -- One.putQueue globalErrorQueue (GlobalErrorSecurity SecuritySaveFailed)
-          -- FIXME subsidiary specific error queue
-        Just mealTags -> pure unit
-          -- apply result to queue that targets that ui component
-      searchMealTagsOnInitOut mInitOut = case mInitOut of
-        Nothing -> pure unit
-          -- FIXME apply to mitch error queue
-        Just JSONUnit -> pure unit
-
-  _ <- mountSparrowClientQueuesSingleton tagQueues.searchMealTagsQueues
-    searchMealTagsDeltaInQueue searchMealTagsInitInQueue searchMealTagsOnDeltaOut searchMealTagsOnInitOut
-  -- One.onQueue searchMealTagKillificator \_ -> killSearchMealTagSub -- hack applied
-
-  -- Top-level delta in issuer
-  let searchMealTagDeltaIn :: String -> Eff Effects Unit
-      searchMealTagDeltaIn = One.putQueue searchMealTagsDeltaInQueue
-
-      -- searchMealTagInitIn :: JSONUnit -> Eff Effects Unit
-      -- searchMealTagInitIn = One.putQueue searchMealTagsInitInQueue
-      -- FIXME invoke immediately?
-
-
-  One.putQueue searchMealTagsInitInQueue JSONUnit
-
+  tagSearch <- mountTagSearchQueues tagQueues
+    { onChefTagSearchResult: \_ -> pure unit
+    , onCultureTagSearchResult: \_ -> pure unit
+    , onDietTagSearchResult: \_ -> pure unit
+    , onFarmTagSearchResult: \_ -> pure unit
+    , onIngredientTagSearchResult: \_ -> pure unit
+    , onMealTagSearchResult: \_ -> pure unit
+    }
 
   defaultMain
     { env
     , palette
-    , siteQueues: {adminQueues,tagQueues}
-    , deps: \{adminQueues,tagQueues} -> do
+    , deps: do
         adminDependencies adminQueues
         tagDependencies tagQueues
     , leftDrawer:
